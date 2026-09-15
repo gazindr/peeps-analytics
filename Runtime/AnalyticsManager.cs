@@ -7,9 +7,8 @@ using UnityEngine.Networking;
 
 /// <summary>
 /// Drop-in analytics module.
-/// Set <see cref="serverBaseUrl"/> (e.g. peepsgames.com) + <see cref="gameFolder"/> (e.g. Obby)
-/// → posts to peepsgames.com/Games/Obby/analytics.php
-/// Same pattern as multiplayer: baseURL + GameFolder.
+/// Set <see cref="serverBaseUrl"/> + <see cref="gameFolder"/> (e.g. YourGameFolder)
+/// → …/Games/YourGameFolder/analytics.php
 /// </summary>
 public class AnalyticsManager : MonoBehaviour
 {
@@ -19,7 +18,7 @@ public class AnalyticsManager : MonoBehaviour
     [Tooltip("Host or Games base. Examples: peepsgames.com  |  https://peepsgames.com  |  https://peepsgames.com/Games/")]
     public string serverBaseUrl = "https://peepsgames.com/Games/";
 
-    [Tooltip("Game folder on server, e.g. Obby or MyGame → …/Games/{gameFolder}/analytics.php")]
+    [Tooltip("Game folder on server, e.g. YourGameFolder → …/Games/{gameFolder}/analytics.php")]
     public string gameFolder = "YourGameFolder";
 
     [Tooltip("Computed full URL. Filled automatically from serverBaseUrl + gameFolder.")]
@@ -80,7 +79,7 @@ public class AnalyticsManager : MonoBehaviour
 
     /// <summary>
     /// Same as multiplayer: serverBase (…/Games/) + gameFolder → …/Games/{folder}/analytics.php
-    /// Also accepts bare host peepsgames.com → peepsgames.com/Games/{folder}/analytics.php
+    /// Also accepts a bare host → {host}/Games/{folder}/analytics.php
     /// </summary>
     public void ConfigureEndpoint(string serverBase, string folder)
     {
@@ -107,8 +106,8 @@ public class AnalyticsManager : MonoBehaviour
     }
 
     /// <summary>
-    /// peepsgames.com + Obby → https://peepsgames.com/Games/Obby/analytics.php
-    /// https://peepsgames.com/Games/ + Obby → https://peepsgames.com/Games/Obby/analytics.php
+    /// host + YourGameFolder → https://host/Games/YourGameFolder/analytics.php
+    /// https://host/Games/ + YourGameFolder → https://host/Games/YourGameFolder/analytics.php
     /// </summary>
     public static string BuildAnalyticsUrl(string serverBase, string folder)
     {
@@ -116,7 +115,7 @@ public class AnalyticsManager : MonoBehaviour
     }
 
     /// <summary>
-    /// peepsgames.com + Obby + funnel.php → https://peepsgames.com/Games/Obby/funnel.php
+    /// host + YourGameFolder + funnel.php → https://host/Games/YourGameFolder/funnel.php
     /// </summary>
     public static string BuildEndpointUrl(string serverBase, string folder, string phpFile)
     {

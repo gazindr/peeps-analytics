@@ -1,8 +1,8 @@
 {
   "name": "com.peeps.analytics",
-  "version": "1.2.0",
-  "displayName": "Peeps Analytics",
-  "description": "Drop-in Unity analytics manager and WebGL HTML funnel for peepsgames.com. Add the package from Git, put Analytics on a scene, set Game Folder.",
+  "version": "1.3.0",
+  "displayName": "BetterAnalytics",
+  "description": "Drop-in Unity analytics manager and WebGL HTML funnel. Add the package from Git, set Game Folder, connect funnel.js in HTML.",
   "unity": "2021.3",
   "documentationUrl": "https://github.com/gazindr/peeps-analytics",
   "changelogUrl": "https://github.com/gazindr/peeps-analytics/releases",
@@ -10,8 +10,7 @@
   "keywords": [
     "analytics",
     "funnel",
-    "webgl",
-    "peepsgames"
+    "webgl"
   ],
   "author": {
     "name": "gazindr",
@@ -24,7 +23,7 @@
   "samples": [
     {
       "displayName": "Standalone analytics.php",
-      "description": "Optional CSV PHP endpoint if the game is not hosted on peepsgames.",
+      "description": "Optional CSV PHP endpoint for a standalone server.",
       "path": "Samples~/Server"
     }
   ]

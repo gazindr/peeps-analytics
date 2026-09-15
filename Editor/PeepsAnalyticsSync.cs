@@ -13,7 +13,7 @@ static class PeepsAnalyticsSync
     {
         string folder = PeepsAnalyticsSettings.Sanitize(gameFolder);
         if (!PeepsAnalyticsSettings.IsValid(folder))
-            return "Укажи имя папки игры на сервере, например MegaCarGame.";
+            return "Укажи имя папки игры на сервере, например НазваниеИгры.";
 
         PeepsAnalyticsSettings.GameFolder = folder;
 
@@ -23,7 +23,7 @@ static class PeepsAnalyticsSync
         string html = HtmlFunnelWebGLInstaller.ConnectFunnelToHtml(installJsIfMissing: true);
 
         string jsLine = string.IsNullOrEmpty(jsPath)
-            ? "funnel.js не найден — поставь WebGL template или Peeps → Analytics → Install funnel.js."
+            ? "funnel.js не найден — поставь WebGL template или BetterAnalytics → Install funnel.js."
             : "funnel.js: " + jsPath;
 
         return $"GAME_FOLDER = {folder}\n" +
@@ -138,7 +138,7 @@ static class PeepsAnalyticsSync
                 if (!assetPath.StartsWith("Assets/") && assetPath.IndexOf("com.peeps.analytics") < 0)
                     continue;
                 if (prefabGuids.Length > 40)
-                    EditorUtility.DisplayProgressBar("Peeps Analytics", assetPath, (float)i / prefabGuids.Length);
+                    EditorUtility.DisplayProgressBar("BetterAnalytics", assetPath, (float)i / prefabGuids.Length);
 
                 string yaml;
                 try { yaml = File.ReadAllText(assetPath); }

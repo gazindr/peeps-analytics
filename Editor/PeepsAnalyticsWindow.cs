@@ -12,7 +12,7 @@ class PeepsAnalyticsWindow : EditorWindow
     [MenuItem(HtmlFunnelWebGLInstaller.MenuRoot + "Game Folder", false, 0)]
     public static void Open()
     {
-        var window = GetWindow<PeepsAnalyticsWindow>(true, "Peeps Analytics");
+        var window = GetWindow<PeepsAnalyticsWindow>(true, "BetterAnalytics");
         window.minSize = new Vector2(440, 280);
         window.Show();
     }
@@ -27,7 +27,7 @@ class PeepsAnalyticsWindow : EditorWindow
         EditorGUILayout.Space(8);
         EditorGUILayout.LabelField("GAME_FOLDER", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "Одно имя папки на peepsgames. Сохранится в префаб/сцену (AnalyticsManager, AnalyticsFunnel) и в funnel.js.",
+            "Одно имя папки игры на сервере. Сохранится в префаб/сцену (AnalyticsManager, AnalyticsFunnel) и в funnel.js.",
             MessageType.Info);
 
         EditorGUILayout.BeginHorizontal();
@@ -48,7 +48,7 @@ class PeepsAnalyticsWindow : EditorWindow
         if (GUILayout.Button("Connect funnel.js in HTML", GUILayout.Height(28)))
         {
             status = HtmlFunnelWebGLInstaller.ConnectFunnelToHtml(installJsIfMissing: true);
-            Debug.Log("[Peeps Analytics]\n" + status);
+            Debug.Log("[BetterAnalytics]\n" + status);
         }
 
         if (Event.current.type == EventType.KeyDown &&
@@ -83,6 +83,6 @@ class PeepsAnalyticsWindow : EditorWindow
         status = PeepsAnalyticsSync.ApplyAll(gameFolder);
         gameFolder = PeepsAnalyticsSettings.GameFolder;
         Repaint();
-        Debug.Log("[Peeps Analytics]\n" + status);
+        Debug.Log("[BetterAnalytics]\n" + status);
     }
 }

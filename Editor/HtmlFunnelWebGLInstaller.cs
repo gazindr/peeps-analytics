@@ -8,7 +8,7 @@ using UnityEngine;
 /// </summary>
 public static class HtmlFunnelWebGLInstaller
 {
-    public const string MenuRoot = "Peeps/Analytics/";
+    public const string MenuRoot = "BetterAnalytics/";
 
     public static string FunnelJsPath
     {
@@ -46,16 +46,17 @@ public static class HtmlFunnelWebGLInstaller
     public static void ConnectHtmlFromMenu()
     {
         string result = ConnectFunnelToHtml(installJsIfMissing: true);
-        Debug.Log("[Peeps Analytics]\n" + result);
-        EditorUtility.DisplayDialog("Peeps Analytics", result, "OK");
+        Debug.Log("[BetterAnalytics]\n" + result);
+        EditorUtility.DisplayDialog("BetterAnalytics", result, "OK");
     }
 
     [InitializeOnLoadMethod]
     static void AutoInstallOnce()
     {
-        if (SessionState.GetBool("PeepsAnalytics.FunnelInstallChecked", false))
+        if (SessionState.GetBool("BetterAnalytics.FunnelInstallChecked", false) ||
+            SessionState.GetBool("PeepsAnalytics.FunnelInstallChecked", false))
             return;
-        SessionState.SetBool("PeepsAnalytics.FunnelInstallChecked", true);
+        SessionState.SetBool("BetterAnalytics.FunnelInstallChecked", true);
         EditorApplication.delayCall += () => Install(overwrite: false, logAlways: false);
     }
 
@@ -65,7 +66,7 @@ public static class HtmlFunnelWebGLInstaller
         if (!File.Exists(src))
         {
             if (logAlways)
-                Debug.LogWarning("[Peeps Analytics] funnel.js template is missing in the package.");
+                Debug.LogWarning("[BetterAnalytics] funnel.js template is missing in the package.");
             return;
         }
 
@@ -78,14 +79,14 @@ public static class HtmlFunnelWebGLInstaller
             ConnectFunnelToHtml(installJsIfMissing: false);
             ApplySavedFolderToFunnelJs();
             if (logAlways)
-                Debug.Log("[Peeps Analytics] funnel.js already exists. Use Reinstall to overwrite.\n" + dst);
+                Debug.Log("[BetterAnalytics] funnel.js already exists. Use Reinstall to overwrite.\n" + dst);
             return;
         }
 
         File.Copy(src, dst, overwrite: true);
         ConnectFunnelToHtml(installJsIfMissing: false);
         ApplySavedFolderToFunnelJs();
-        Debug.Log("[Peeps Analytics] Installed funnel.js. Set GAME_FOLDER via Peeps → Analytics → Game Folder.\n" + dst);
+        Debug.Log("[BetterAnalytics] Installed funnel.js. Set GAME_FOLDER via BetterAnalytics → Game Folder.\n" + dst);
     }
 
     public static string IndexHtmlPath
@@ -233,7 +234,7 @@ public static class HtmlFunnelWebGLInstaller
 
         html = head.Replace(html, m => m.Value + "\n" + tag, 1);
         File.WriteAllText(indexPath, html);
-        Debug.Log("[Peeps Analytics] Added funnel.js script tag to " + indexPath);
+        Debug.Log("[BetterAnalytics] Added funnel.js script tag to " + indexPath);
         return HtmlPatchResult.Patched;
     }
 

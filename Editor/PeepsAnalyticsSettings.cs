@@ -13,7 +13,8 @@ class PeepsAnalyticsSettingsData
 /// </summary>
 static class PeepsAnalyticsSettings
 {
-    const string FileName = "PeepsAnalytics.json";
+    const string FileName = "BetterAnalytics.json";
+    const string LegacyFileName = "PeepsAnalytics.json";
 
     public static string FilePath
     {
@@ -83,8 +84,18 @@ static class PeepsAnalyticsSettings
         try
         {
             if (File.Exists(FilePath))
+            {
                 return JsonUtility.FromJson<PeepsAnalyticsSettingsData>(File.ReadAllText(FilePath))
                        ?? new PeepsAnalyticsSettingsData();
+            }
+
+            string project = Directory.GetParent(Application.dataPath)?.FullName ?? "";
+            string legacy = Path.Combine(project, "ProjectSettings", LegacyFileName);
+            if (File.Exists(legacy))
+            {
+                return JsonUtility.FromJson<PeepsAnalyticsSettingsData>(File.ReadAllText(legacy))
+                       ?? new PeepsAnalyticsSettingsData();
+            }
         }
         catch
         {
