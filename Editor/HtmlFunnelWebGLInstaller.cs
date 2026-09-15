@@ -8,25 +8,35 @@ using UnityEngine;
 /// </summary>
 public static class HtmlFunnelWebGLInstaller
 {
-    const string MenuRoot = "Peeps/Analytics/";
+    public const string MenuRoot = "Peeps/Analytics/";
 
-    [MenuItem(MenuRoot + "Add Analytics object to scene")]
+    public static string FunnelJsPath
+    {
+        get
+        {
+            string dir = ResolveTemplateDir();
+            return string.IsNullOrEmpty(dir) ? "" : Path.Combine(dir, "funnel.js");
+        }
+    }
+
+    [MenuItem(MenuRoot + "Add Analytics object to scene", false, 20)]
     public static void AddAnalyticsToScene()
     {
         var go = new GameObject("Analytics");
         go.AddComponent<AnalyticsManager>();
         go.AddComponent<AnalyticsFunnel>();
+        PeepsAnalyticsSync.ApplyToGameObject(go);
         Undo.RegisterCreatedObjectUndo(go, "Add Analytics");
         Selection.activeGameObject = go;
     }
 
-    [MenuItem(MenuRoot + "Install funnel.js into WebGL template")]
+    [MenuItem(MenuRoot + "Install funnel.js into WebGL template", false, 21)]
     public static void InstallFromMenu()
     {
         Install(overwrite: false, logAlways: true);
     }
 
-    [MenuItem(MenuRoot + "Reinstall funnel.js (overwrite)")]
+    [MenuItem(MenuRoot + "Reinstall funnel.js (overwrite)", false, 22)]
     public static void ReinstallFromMenu()
     {
         Install(overwrite: true, logAlways: true);
@@ -41,7 +51,7 @@ public static class HtmlFunnelWebGLInstaller
         EditorApplication.delayCall += () => Install(overwrite: false, logAlways: false);
     }
 
-    static void Install(bool overwrite, bool logAlways)
+    public static void Install(bool overwrite, bool logAlways)
     {
         string src = Path.Combine(PackageRoot(), "Editor", "FunnelTemplate", "funnel.js.txt");
         if (!File.Exists(src))
@@ -58,6 +68,7 @@ public static class HtmlFunnelWebGLInstaller
         if (File.Exists(dst) && !overwrite)
         {
             PatchIndexHtml(templateDir, logAlways);
+            ApplySavedFolderToFunnelJs();
             if (logAlways)
                 Debug.Log("[Peeps Analytics] funnel.js already exists. Use Reinstall to overwrite.\n" + dst);
             return;
@@ -65,10 +76,18 @@ public static class HtmlFunnelWebGLInstaller
 
         File.Copy(src, dst, overwrite: true);
         PatchIndexHtml(templateDir, logAlways: true);
-        Debug.Log("[Peeps Analytics] Installed funnel.js. Set GAME_FOLDER inside it to your server folder.\n" + dst);
+        ApplySavedFolderToFunnelJs();
+        Debug.Log("[Peeps Analytics] Installed funnel.js. Set GAME_FOLDER via Peeps → Analytics → Game Folder.\n" + dst);
     }
 
-    static string ResolveTemplateDir()
+    static void ApplySavedFolderToFunnelJs()
+    {
+        string folder = PeepsAnalyticsSettings.GameFolder;
+        if (PeepsAnalyticsSettings.IsValid(folder))
+            PeepsAnalyticsSync.ApplyToFunnelJs(folder);
+    }
+
+    public static string ResolveTemplateDir()
     {
         string template = PlayerSettings.WebGL.template ?? "";
         if (template.StartsWith("PROJECT:"))

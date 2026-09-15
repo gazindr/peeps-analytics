@@ -15,14 +15,13 @@ https://github.com/gazindr/peeps-analytics.git
 4. **Add**
 
 После импорта:
-- меню **Peeps → Analytics → Add Analytics object to scene**
-- в инспекторе у `AnalyticsManager` выставь **Game Folder** (папка игры на сервере, например `MegaCarGame`)
-- `funnel.js` копируется в WebGL-шаблон сам; внутри него поменяй `GAME_FOLDER` на то же имя
+- **Peeps → Analytics → Game Folder** — впиши папку игры (`MegaCarGame`). Это же значение уйдёт в префаб/сцену и в `funnel.js`
+- **Peeps → Analytics → Add Analytics object to scene** — если Game Folder уже задан, объект создастся сразу с ним
 
 Фиксированная версия (чтобы пакет не уезжал с `main`):
 
 ```
-https://github.com/gazindr/peeps-analytics.git#v1.0.0
+https://github.com/gazindr/peeps-analytics.git#v1.1.0
 ```
 
 ## Что внутри

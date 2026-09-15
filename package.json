@@ -1,6 +1,6 @@
 {
   "name": "com.peeps.analytics",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "displayName": "Peeps Analytics",
   "description": "Drop-in Unity analytics manager and WebGL HTML funnel for peepsgames.com. Add the package from Git, put Analytics on a scene, set Game Folder.",
   "unity": "2021.3",
