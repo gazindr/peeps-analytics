@@ -20,6 +20,7 @@ static class PeepsAnalyticsSync
         int components = ApplyToLoadedComponents(folder);
         int prefabs = ApplyToPrefabs(folder);
         string jsPath = ApplyToFunnelJs(folder);
+        string html = HtmlFunnelWebGLInstaller.ConnectFunnelToHtml(installJsIfMissing: true);
 
         string jsLine = string.IsNullOrEmpty(jsPath)
             ? "funnel.js не найден — поставь WebGL template или Peeps → Analytics → Install funnel.js."
@@ -28,7 +29,8 @@ static class PeepsAnalyticsSync
         return $"GAME_FOLDER = {folder}\n" +
                $"Компонентов в сценах: {components}\n" +
                $"Префабов: {prefabs}\n" +
-               jsLine;
+               jsLine + "\n\n" +
+               html;
     }
 
     public static void ApplyToGameObject(GameObject go)

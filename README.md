@@ -16,12 +16,20 @@ https://github.com/gazindr/peeps-analytics.git
 
 После импорта:
 - **Peeps → Analytics → Game Folder** — впиши папку игры (`MegaCarGame`). Это же значение уйдёт в префаб/сцену и в `funnel.js`
+- **Connect funnel.js in HTML** (в том же окне или в меню) — впишет в `index.html` шаблона первой строкой в `<head>`:
+
+```html
+<script src="./funnel.js"></script>
+```
+
+Так воронка стартует до Unity. Нужен WebGL Template проекта (`Assets/WebGLTemplates/...`, в Player Settings).
+
 - **Peeps → Analytics → Add Analytics object to scene** — если Game Folder уже задан, объект создастся сразу с ним
 
 Фиксированная версия (чтобы пакет не уезжал с `main`):
 
 ```
-https://github.com/gazindr/peeps-analytics.git#v1.1.0
+https://github.com/gazindr/peeps-analytics.git#v1.2.0
 ```
 
 ## Что внутри

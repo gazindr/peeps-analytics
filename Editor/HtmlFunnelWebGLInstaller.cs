@@ -42,6 +42,14 @@ public static class HtmlFunnelWebGLInstaller
         Install(overwrite: true, logAlways: true);
     }
 
+    [MenuItem(MenuRoot + "Connect funnel.js in HTML", false, 23)]
+    public static void ConnectHtmlFromMenu()
+    {
+        string result = ConnectFunnelToHtml(installJsIfMissing: true);
+        Debug.Log("[Peeps Analytics]\n" + result);
+        EditorUtility.DisplayDialog("Peeps Analytics", result, "OK");
+    }
+
     [InitializeOnLoadMethod]
     static void AutoInstallOnce()
     {
@@ -67,7 +75,7 @@ public static class HtmlFunnelWebGLInstaller
 
         if (File.Exists(dst) && !overwrite)
         {
-            PatchIndexHtml(templateDir, logAlways);
+            ConnectFunnelToHtml(installJsIfMissing: false);
             ApplySavedFolderToFunnelJs();
             if (logAlways)
                 Debug.Log("[Peeps Analytics] funnel.js already exists. Use Reinstall to overwrite.\n" + dst);
@@ -75,9 +83,114 @@ public static class HtmlFunnelWebGLInstaller
         }
 
         File.Copy(src, dst, overwrite: true);
-        PatchIndexHtml(templateDir, logAlways: true);
+        ConnectFunnelToHtml(installJsIfMissing: false);
         ApplySavedFolderToFunnelJs();
         Debug.Log("[Peeps Analytics] Installed funnel.js. Set GAME_FOLDER via Peeps → Analytics → Game Folder.\n" + dst);
+    }
+
+    public static string IndexHtmlPath
+    {
+        get
+        {
+            string dir = ResolveTemplateDir();
+            return string.IsNullOrEmpty(dir) ? "" : Path.Combine(dir, "index.html");
+        }
+    }
+
+    /// <summary>
+    /// Inserts &lt;script src="./funnel.js"&gt; into the WebGL template HTML, as the first tag in &lt;head&gt;.
+    /// </summary>
+    public static string ConnectFunnelToHtml(bool installJsIfMissing)
+    {
+        if (installJsIfMissing)
+        {
+            string js = FunnelJsPath;
+            if (string.IsNullOrEmpty(js) || !File.Exists(js))
+                Install(overwrite: false, logAlways: false);
+        }
+
+        var patched = new System.Collections.Generic.List<string>();
+        var already = new System.Collections.Generic.List<string>();
+        var failed = new System.Collections.Generic.List<string>();
+        var seen = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+
+        foreach (string htmlPath in CandidateHtmlFiles())
+        {
+            if (!seen.Add(htmlPath))
+                continue;
+            switch (PatchIndexHtmlFile(htmlPath))
+            {
+                case HtmlPatchResult.Patched:
+                    patched.Add(htmlPath);
+                    break;
+                case HtmlPatchResult.AlreadyConnected:
+                    already.Add(htmlPath);
+                    break;
+                default:
+                    failed.Add(htmlPath);
+                    break;
+            }
+        }
+
+        if (patched.Count == 0 && already.Count == 0 && failed.Count == 0)
+        {
+            return "Не найден index.html WebGL-шаблона.\n" +
+                   "Player Settings → Resolution and Presentation → WebGL Template — выбери шаблон проекта\n" +
+                   "(папка Assets/WebGLTemplates/...). Потом нажми кнопку ещё раз.";
+        }
+
+        var lines = new System.Text.StringBuilder();
+        if (patched.Count > 0)
+        {
+            lines.AppendLine("В HTML добавлен тег воронки (первым в <head>):");
+            foreach (string path in patched)
+                lines.AppendLine(path);
+            lines.AppendLine();
+            lines.AppendLine("<script src=\"./funnel.js\"></script>");
+        }
+        if (already.Count > 0)
+        {
+            if (lines.Length > 0) lines.AppendLine();
+            lines.AppendLine("Уже подключено:");
+            foreach (string path in already)
+                lines.AppendLine(path);
+        }
+        if (failed.Count > 0)
+        {
+            if (lines.Length > 0) lines.AppendLine();
+            lines.AppendLine("Не удалось вписать <head> в:");
+            foreach (string path in failed)
+                lines.AppendLine(path);
+        }
+
+        AssetDatabase.Refresh();
+        return lines.ToString().Trim();
+    }
+
+    enum HtmlPatchResult
+    {
+        Patched,
+        AlreadyConnected,
+        Failed
+    }
+
+    static System.Collections.Generic.IEnumerable<string> CandidateHtmlFiles()
+    {
+        string dir = ResolveTemplateDir();
+        if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+        {
+            string index = Path.Combine(dir, "index.html");
+            if (File.Exists(index))
+                yield return index;
+            foreach (string file in Directory.GetFiles(dir, "*.html"))
+                yield return file;
+        }
+
+        string templatesRoot = Path.Combine(Application.dataPath, "WebGLTemplates");
+        if (!Directory.Exists(templatesRoot))
+            yield break;
+        foreach (string index in Directory.GetFiles(templatesRoot, "index.html", SearchOption.AllDirectories))
+            yield return index;
     }
 
     static void ApplySavedFolderToFunnelJs()
@@ -104,36 +217,24 @@ public static class HtmlFunnelWebGLInstaller
         return Path.Combine(Application.dataPath, "WebGLTemplates", "Bridge");
     }
 
-    static void PatchIndexHtml(string templateDir, bool logAlways)
+    static HtmlPatchResult PatchIndexHtmlFile(string indexPath)
     {
-        string indexPath = Path.Combine(templateDir, "index.html");
-        if (!File.Exists(indexPath))
-        {
-            if (logAlways)
-            {
-                Debug.LogWarning(
-                    "[Peeps Analytics] No index.html in the WebGL template. Add this line in <head>:\n" +
-                    "        <script src=\"./funnel.js\"></script>");
-            }
-            return;
-        }
+        if (string.IsNullOrEmpty(indexPath) || !File.Exists(indexPath))
+            return HtmlPatchResult.Failed;
 
         string html = File.ReadAllText(indexPath);
-        if (Regex.IsMatch(html, @"funnel\.js", RegexOptions.IgnoreCase))
-            return;
+        if (Regex.IsMatch(html, @"<script[^>]+src\s*=\s*['""][^'""]*funnel\.js['""]", RegexOptions.IgnoreCase))
+            return HtmlPatchResult.AlreadyConnected;
 
-        string tag = "        <script src=\"./funnel.js\"></script>";
+        const string tag = "        <script src=\"./funnel.js\"></script>";
         var head = new Regex("<head[^>]*>", RegexOptions.IgnoreCase);
-        if (head.IsMatch(html))
-        {
-            html = head.Replace(html, m => m.Value + "\n" + tag, 1);
-            File.WriteAllText(indexPath, html);
-            Debug.Log("[Peeps Analytics] Added funnel.js script tag to " + indexPath);
-            return;
-        }
+        if (!head.IsMatch(html))
+            return HtmlPatchResult.Failed;
 
-        if (logAlways)
-            Debug.LogWarning("[Peeps Analytics] Could not find <head> in index.html. Add:\n" + tag);
+        html = head.Replace(html, m => m.Value + "\n" + tag, 1);
+        File.WriteAllText(indexPath, html);
+        Debug.Log("[Peeps Analytics] Added funnel.js script tag to " + indexPath);
+        return HtmlPatchResult.Patched;
     }
 
     static string PackageRoot()
