@@ -1,0 +1,359 @@
+(function () {
+    // Per-game: change only this when copying the script to another project.
+    var GAME_FOLDER = 'YourGameFolder';
+
+    var SERVER_HOST = 'https://peepsgames.com';
+    var FUNNEL_NAME = 'HTML_';
+    var PHP_FILE = 'funnel.php';
+
+    if (window.__htmlFunnelInited) return;
+    window.__htmlFunnelInited = true;
+
+    var FUNNEL_URL = SERVER_HOST.replace(/\/+$/, '') + '/Games/' + GAME_FOLDER + '/' + PHP_FILE;
+    var PLAYER_KEY = 'funnel_player_id_' + GAME_FOLDER;
+    var VOWELS = 'aaweyuioo';
+    var CONSONANTS = 'qrtpsdghjklzxcvbm';
+
+    var frozenPlayerId = '';
+    var playerLocked = false;
+    var startOk = false;
+    var startInFlight = false;
+    var loadedSent = false;
+    var playerContextReady = false;
+    var startedAt = Date.now();
+
+    function logFunnel() {
+        try {
+            var args = ['[HTML funnel]'];
+            for (var i = 0; i < arguments.length; i++) args.push(arguments[i]);
+            console.log.apply(console, args);
+        } catch (e) { /* ignore */ }
+    }
+
+    function randomInt(maxExclusive) {
+        return Math.floor(Math.random() * maxExclusive);
+    }
+
+    function randomId() {
+        try {
+            if (crypto && crypto.randomUUID)
+                return crypto.randomUUID().replace(/-/g, '');
+        } catch (e) { /* ignore */ }
+        return Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+    }
+
+    function generateGuestNick() {
+        var name = '';
+        var newTypeCounter = 0;
+        var isVowl = true;
+        for (var i = 0; i < 7; i++) {
+            if (newTypeCounter === 2 || randomInt(2) === 1) {
+                isVowl = !isVowl;
+                newTypeCounter = 0;
+            }
+            name += isVowl
+                ? VOWELS.charAt(randomInt(VOWELS.length))
+                : CONSONANTS.charAt(randomInt(CONSONANTS.length));
+            newTypeCounter++;
+        }
+        return name;
+    }
+
+    function persistPlayerId(id) {
+        if (!id) return;
+        try { localStorage.setItem(PLAYER_KEY, id); } catch (e) { /* ignore */ }
+    }
+
+    function storedPlayerId() {
+        try {
+            var id = localStorage.getItem(PLAYER_KEY);
+            if (id && String(id).trim().length >= 2) return String(id).trim();
+        } catch (e) { /* ignore */ }
+        return '';
+    }
+
+    function authorizedPlatformName() {
+        try {
+            if (!window.bridge || !bridge.player) return '';
+            if (!bridge.player.isAuthorized) return '';
+            var name = bridge.player.name;
+            if (name && String(name).trim().length >= 2) return String(name).trim();
+        } catch (e) { /* ignore */ }
+        return '';
+    }
+
+    function resolvePlayerId() {
+        if (playerLocked && frozenPlayerId) return frozenPlayerId;
+
+        var auth = authorizedPlatformName();
+        if (auth) {
+            frozenPlayerId = auth;
+            persistPlayerId(frozenPlayerId);
+            return frozenPlayerId;
+        }
+
+        if (frozenPlayerId) return frozenPlayerId;
+
+        frozenPlayerId = storedPlayerId() || generateGuestNick();
+        persistPlayerId(frozenPlayerId);
+        return frozenPlayerId;
+    }
+
+    function lockPlayerId() {
+        resolvePlayerId();
+        playerLocked = true;
+        return frozenPlayerId;
+    }
+
+    function sessionId() {
+        if (!window.__htmlFunnelSession)
+            window.__htmlFunnelSession = randomId();
+        return window.__htmlFunnelSession;
+    }
+
+    function platformName() {
+        try {
+            if (window.bridge && bridge.platform && bridge.platform.id)
+                return String(bridge.platform.id);
+        } catch (e) { /* ignore */ }
+        var host = (location.hostname || '').toLowerCase();
+        if (host.indexOf('yandex') >= 0) return 'yandex';
+        if (host.indexOf('playgama') >= 0) return 'playgama';
+        if (host.indexOf('vkplay') >= 0 || host.indexOf('vk.com') >= 0) return 'vk';
+        return 'web';
+    }
+
+    function deviceName() {
+        try {
+            if (window.bridge && bridge.device && bridge.device.type) {
+                var t = String(bridge.device.type).toLowerCase();
+                if (t === 'mobile' || t === 'tablet') return 'mobile';
+                if (t === 'desktop') return 'pc';
+            }
+        } catch (e) { /* ignore */ }
+        return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '') ? 'mobile' : 'pc';
+    }
+
+    function elapsedSec() {
+        return Math.max(0, (Date.now() - startedAt) / 1000);
+    }
+
+    function send(key, extra, onDone) {
+        var payload = {
+            player_id: lockPlayerId(),
+            funnel_name: FUNNEL_NAME,
+            checkpoint: key,
+            session_id: sessionId(),
+            platformName: platformName(),
+            device: deviceName(),
+            started_at: startedAt
+        };
+        if (extra && typeof extra === 'object') {
+            if (typeof extra.gameloading === 'number' && isFinite(extra.gameloading) && extra.gameloading > 0)
+                payload.gameloading = Math.round(extra.gameloading * 10) / 10;
+            if (typeof extra.gameready === 'number' && isFinite(extra.gameready) && extra.gameready > 0)
+                payload.gameready = Math.round(extra.gameready * 10) / 10;
+            if (typeof extra.duration === 'number' && isFinite(extra.duration) && extra.duration > 0)
+                payload.duration = Math.round(extra.duration * 10) / 10;
+        }
+        var body = JSON.stringify(payload);
+        if (key === 'start_loading' || key === 'loaded')
+            logFunnel(key, 'POST', payload);
+        var finished = false;
+        function done(ok, meta) {
+            if (finished) return;
+            finished = true;
+            if (key === 'start_loading' || key === 'loaded')
+                logFunnel(key, ok ? 'ok' : 'fail', meta || '');
+            if (typeof onDone === 'function') onDone(!!ok);
+        }
+        try {
+            fetch(FUNNEL_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: body,
+                keepalive: true,
+                mode: 'cors',
+                credentials: 'omit'
+            }).then(function (res) {
+                if (res && res.ok) {
+                    done(true, res.status);
+                    return;
+                }
+                var status = res ? res.status : 0;
+                if (!res || typeof res.text !== 'function') {
+                    done(false, status);
+                    return;
+                }
+                res.text().then(function (text) {
+                    done(false, status + ' ' + String(text || '').slice(0, 180));
+                }).catch(function () { done(false, status); });
+            }).catch(function (err) {
+                done(false, String(err && err.message ? err.message : err));
+            });
+        } catch (e2) {
+            done(false, String(e2 && e2.message ? e2.message : e2));
+        }
+    }
+
+    function sendStartLoading() {
+        if (startOk) return;
+        if (startInFlight) return;
+        startInFlight = true;
+        if (!startedAt) startedAt = Date.now();
+        var attempts = 0;
+        function trySend() {
+            attempts++;
+            logFunnel('start_loading attempt', attempts);
+            send('start_loading', null, function (ok) {
+                if (ok) {
+                    startOk = true;
+                    startInFlight = false;
+                    return;
+                }
+                if (attempts >= 10) {
+                    startInFlight = false;
+                    logFunnel('start_loading gave up after', attempts, 'attempts');
+                    return;
+                }
+                setTimeout(trySend, Math.min(2000, 400 * attempts));
+            });
+        }
+        trySend();
+    }
+
+    function markLoaded() {
+        if (loadedSent) return;
+        loadedSent = true;
+        logFunnel('loaded requested', 'startOk=', startOk);
+        function sendLoaded() {
+            send('loaded', { gameloading: elapsedSec() });
+        }
+        if (startOk) {
+            sendLoaded();
+            return;
+        }
+        sendStartLoading();
+        var waited = 0;
+        var timer = setInterval(function () {
+            waited += 150;
+            if (startOk || waited >= 3000) {
+                clearInterval(timer);
+                if (!startOk)
+                    logFunnel('loaded sending anyway, start_loading not confirmed');
+                sendLoaded();
+            }
+        }, 150);
+    }
+
+    function onPlayerContextReady() {
+        if (playerContextReady) {
+            sendStartLoading();
+            return;
+        }
+        playerContextReady = true;
+        logFunnel('platform ready', platformName(), '— start_loading in 400ms');
+        setTimeout(sendStartLoading, 400);
+    }
+
+    function wrapBridgeInitialize() {
+        if (!window.bridge || typeof bridge.initialize !== 'function') return false;
+        if (bridge.initialize.__htmlFunnelHooked) return true;
+        var orig = bridge.initialize.bind(bridge);
+        bridge.initialize = function () {
+            var result = orig.apply(bridge, arguments);
+            if (result && typeof result.then === 'function') {
+                return result.then(function (value) {
+                    onPlayerContextReady();
+                    return value;
+                });
+            }
+            onPlayerContextReady();
+            return result;
+        };
+        bridge.initialize.__htmlFunnelHooked = true;
+        return true;
+    }
+
+    function wrapInitializeBridge() {
+        if (typeof window.initializeBridge !== 'function' || window.initializeBridge.__htmlFunnelHooked)
+            return typeof window.initializeBridge === 'function';
+        var orig = window.initializeBridge;
+        window.initializeBridge = function () {
+            wrapBridgeInitialize();
+            wrapSetGameLoadingProgress();
+            return orig.apply(this, arguments);
+        };
+        window.initializeBridge.__htmlFunnelHooked = true;
+        return true;
+    }
+
+    function wrapSetGameLoadingProgress() {
+        if (!window.bridge || typeof bridge.setGameLoadingProgress !== 'function') return false;
+        if (bridge.setGameLoadingProgress.__htmlFunnelHooked) return true;
+        var orig = bridge.setGameLoadingProgress.bind(bridge);
+        bridge.setGameLoadingProgress = function () {
+            onPlayerContextReady();
+            return orig.apply(bridge, arguments);
+        };
+        bridge.setGameLoadingProgress.__htmlFunnelHooked = true;
+        return true;
+    }
+
+    function hookCreateUnityInstance() {
+        var orig = window.createUnityInstance;
+        if (typeof orig !== 'function' || orig.__htmlFunnelHooked)
+            return typeof orig === 'function';
+        function wrapped() {
+            var result = orig.apply(this, arguments);
+            if (result && typeof result.then === 'function') {
+                result.then(function () { markLoaded(); }).catch(function () { /* ignore */ });
+            } else {
+                markLoaded();
+            }
+            return result;
+        }
+        wrapped.__htmlFunnelHooked = true;
+        window.createUnityInstance = wrapped;
+        return true;
+    }
+
+    function watch() {
+        if (!loadedSent) {
+            if (window.unityInstance) {
+                markLoaded();
+            } else {
+                hookCreateUnityInstance();
+            }
+        }
+
+        if (!playerContextReady) {
+            wrapInitializeBridge();
+            wrapBridgeInitialize();
+            wrapSetGameLoadingProgress();
+        }
+
+        if (!loadedSent)
+            setTimeout(watch, window.createUnityInstance ? 200 : 30);
+    }
+
+    window.funnel = {
+        send: send,
+        markLoaded: markLoaded,
+        onPlatformReady: onPlayerContextReady,
+        getPlayerId: function () { return lockPlayerId(); },
+        getSessionId: sessionId,
+        getElapsedSec: elapsedSec,
+        getStartedAt: function () { return startedAt; },
+        gameFolder: GAME_FOLDER
+    };
+
+    sessionId();
+    logFunnel('init', 'session', sessionId(), 'url', FUNNEL_URL);
+    setTimeout(function () {
+        if (startOk || startInFlight) return;
+        logFunnel('start_loading fallback timer');
+        sendStartLoading();
+    }, 1200);
+    watch();
+})();

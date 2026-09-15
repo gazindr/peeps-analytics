@@ -1,0 +1,17 @@
+.vs/
+.idea/
+*.csproj
+*.sln
+*.user
+*.pidb
+*.suo
+Library/
+Temp/
+Obj/
+obj/
+Logs/
+UserSettings/
+*.zip
+_publish.py
+.DS_Store
+Thumbs.db
