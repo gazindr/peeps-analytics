@@ -15,7 +15,7 @@ https://github.com/gazindr/peeps-analytics.git
 4. **Add**
 
 После импорта:
-- **BetterAnalytics → Game Folder** — впиши папку игры (`НазваниеИгры`). Это же значение уйдёт в префаб/сцену и в `funnel.js`
+- **BetterAnalytics → Game Folder** — сверху **Host**, ниже папка игры. Хост изначально пустой: впиши только домен, например `peepsgames.com` (без `https://` и без `/Games`). Папка игры — имя проекта на сервере (`НазваниеИгры`). `/Games` и php-пути подставятся сами. Apply запишет оба значения в префаб/сцену и в `funnel.js`
 - **Connect funnel.js in HTML** (в том же окне или в меню) — впишет в `index.html` шаблона первой строкой в `<head>`:
 
 ```html
@@ -24,12 +24,12 @@ https://github.com/gazindr/peeps-analytics.git
 
 Так воронка стартует до Unity. Нужен WebGL Template проекта (`Assets/WebGLTemplates/...`, в Player Settings).
 
-- **BetterAnalytics → Add Analytics object to scene** — если Game Folder уже задан, объект создастся сразу с ним
+- **BetterAnalytics → Add Analytics object to scene** — если Host и Game Folder уже заданы, объект создастся сразу с ними
 
 Фиксированная версия (чтобы пакет не уезжал с `main`):
 
 ```
-https://github.com/gazindr/peeps-analytics.git#v1.3.0
+https://github.com/gazindr/peeps-analytics.git#v1.4.0
 ```
 
 ## Что внутри

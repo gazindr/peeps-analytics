@@ -9,24 +9,32 @@ static class PeepsAnalyticsSync
         @"var\s+GAME_FOLDER\s*=\s*['""][^'""]*['""]",
         RegexOptions.CultureInvariant);
 
-    public static string ApplyAll(string gameFolder)
+    static readonly Regex ServerHostJs = new Regex(
+        @"var\s+SERVER_HOST\s*=\s*['""][^'""]*['""]",
+        RegexOptions.CultureInvariant);
+
+    public static string ApplyAll(string serverHost, string gameFolder)
     {
-        string folder = PeepsAnalyticsSettings.Sanitize(gameFolder);
-        if (!PeepsAnalyticsSettings.IsValid(folder))
+        string host = PeepsAnalyticsSettings.SanitizeHost(serverHost);
+        string folder = PeepsAnalyticsSettings.SanitizeFolder(gameFolder);
+        if (!PeepsAnalyticsSettings.IsValidHost(host))
+            return "Укажи хост, например peepsgames.com (без https и без /Games).";
+        if (!PeepsAnalyticsSettings.IsValidFolder(folder))
             return "Укажи имя папки игры на сервере, например НазваниеИгры.";
 
-        PeepsAnalyticsSettings.GameFolder = folder;
+        PeepsAnalyticsSettings.Set(host, folder);
 
-        int components = ApplyToLoadedComponents(folder);
-        int prefabs = ApplyToPrefabs(folder);
-        string jsPath = ApplyToFunnelJs(folder);
+        int components = ApplyToLoadedComponents(host, folder);
+        int prefabs = ApplyToPrefabs(host, folder);
+        string jsPath = ApplyToFunnelJs(host, folder);
         string html = HtmlFunnelWebGLInstaller.ConnectFunnelToHtml(installJsIfMissing: true);
 
         string jsLine = string.IsNullOrEmpty(jsPath)
             ? "funnel.js не найден — поставь WebGL template или BetterAnalytics → Install funnel.js."
             : "funnel.js: " + jsPath;
 
-        return $"GAME_FOLDER = {folder}\n" +
+        return $"SERVER_HOST = {host}\n" +
+               $"GAME_FOLDER = {folder}\n" +
                $"Компонентов в сценах: {components}\n" +
                $"Префабов: {prefabs}\n" +
                jsLine + "\n\n" +
@@ -35,36 +43,69 @@ static class PeepsAnalyticsSync
 
     public static void ApplyToGameObject(GameObject go)
     {
+        string host = PeepsAnalyticsSettings.ServerHost;
         string folder = PeepsAnalyticsSettings.GameFolder;
-        if (!PeepsAnalyticsSettings.IsValid(folder) || go == null)
+        if (!PeepsAnalyticsSettings.IsValidHost(host) ||
+            !PeepsAnalyticsSettings.IsValidFolder(folder) ||
+            go == null)
             return;
         foreach (var manager in go.GetComponents<AnalyticsManager>())
-            SetGameFolder(manager, folder);
+            SetEndpoint(manager, host, folder);
         foreach (var funnel in go.GetComponents<AnalyticsFunnel>())
-            SetGameFolder(funnel, folder);
+            SetEndpoint(funnel, host, folder);
+    }
+
+    public static string GuessCurrentHost()
+    {
+        string saved = PeepsAnalyticsSettings.ServerHost;
+        if (PeepsAnalyticsSettings.IsValidHost(saved))
+            return saved;
+
+        string fromJs = ReadHostFromFunnelJs();
+        string jsHost = PeepsAnalyticsSettings.SanitizeHost(fromJs);
+        if (PeepsAnalyticsSettings.IsValidHost(jsHost))
+            return jsHost;
+
+        foreach (var manager in FindAll<AnalyticsManager>())
+        {
+            if (manager == null)
+                continue;
+            string host = PeepsAnalyticsSettings.SanitizeHost(manager.serverBaseUrl);
+            if (PeepsAnalyticsSettings.IsValidHost(host))
+                return host;
+        }
+
+        foreach (var funnel in FindAll<AnalyticsFunnel>())
+        {
+            if (funnel == null)
+                continue;
+            string host = PeepsAnalyticsSettings.SanitizeHost(funnel.serverBaseUrl);
+            if (PeepsAnalyticsSettings.IsValidHost(host))
+                return host;
+        }
+
+        return saved;
     }
 
     public static string GuessCurrentFolder()
     {
         string saved = PeepsAnalyticsSettings.GameFolder;
-        if (PeepsAnalyticsSettings.IsValid(saved))
+        if (PeepsAnalyticsSettings.IsValidFolder(saved))
             return saved;
 
         string fromJs = ReadFolderFromFunnelJs();
-        if (PeepsAnalyticsSettings.IsValid(fromJs))
+        if (PeepsAnalyticsSettings.IsValidFolder(fromJs))
             return fromJs;
 
-        var managers = FindAll<AnalyticsManager>();
-        foreach (var manager in managers)
+        foreach (var manager in FindAll<AnalyticsManager>())
         {
-            if (manager != null && PeepsAnalyticsSettings.IsValid(manager.gameFolder))
+            if (manager != null && PeepsAnalyticsSettings.IsValidFolder(manager.gameFolder))
                 return manager.gameFolder;
         }
 
-        var funnels = FindAll<AnalyticsFunnel>();
-        foreach (var funnel in funnels)
+        foreach (var funnel in FindAll<AnalyticsFunnel>())
         {
-            if (funnel != null && PeepsAnalyticsSettings.IsValid(funnel.gameFolder))
+            if (funnel != null && PeepsAnalyticsSettings.IsValidFolder(funnel.gameFolder))
                 return funnel.gameFolder;
         }
 
@@ -73,7 +114,7 @@ static class PeepsAnalyticsSync
 
     static bool installingFunnelJs;
 
-    public static string ApplyToFunnelJs(string folder)
+    public static string ApplyToFunnelJs(string host, string folder)
     {
         string path = HtmlFunnelWebGLInstaller.FunnelJsPath;
         if ((string.IsNullOrEmpty(path) || !File.Exists(path)) && !installingFunnelJs)
@@ -88,10 +129,25 @@ static class PeepsAnalyticsSync
             return "";
 
         string text = File.ReadAllText(path);
-        string replacement = "var GAME_FOLDER = '" + folder.Replace("'", "") + "'";
-        string next = GameFolderJs.IsMatch(text)
-            ? GameFolderJs.Replace(text, replacement, 1)
-            : replacement + ";\n" + text;
+        string next = text;
+
+        if (host != null)
+        {
+            string safeHost = host.Replace("'", "");
+            string replacement = "var SERVER_HOST = '" + safeHost + "'";
+            next = ServerHostJs.IsMatch(next)
+                ? ServerHostJs.Replace(next, replacement, 1)
+                : replacement + ";\n" + next;
+        }
+
+        if (folder != null)
+        {
+            string safeFolder = folder.Replace("'", "");
+            string replacement = "var GAME_FOLDER = '" + safeFolder + "'";
+            next = GameFolderJs.IsMatch(next)
+                ? GameFolderJs.Replace(next, replacement, 1)
+                : replacement + ";\n" + next;
+        }
 
         if (next != text)
         {
@@ -104,24 +160,36 @@ static class PeepsAnalyticsSync
 
     static string ReadFolderFromFunnelJs()
     {
+        return ReadJsString("GAME_FOLDER");
+    }
+
+    static string ReadHostFromFunnelJs()
+    {
+        return ReadJsString("SERVER_HOST");
+    }
+
+    static string ReadJsString(string name)
+    {
         string path = HtmlFunnelWebGLInstaller.FunnelJsPath;
         if (string.IsNullOrEmpty(path) || !File.Exists(path))
             return "";
-        var match = Regex.Match(File.ReadAllText(path), @"var\s+GAME_FOLDER\s*=\s*['""]([^'""]+)['""]");
+        var match = Regex.Match(
+            File.ReadAllText(path),
+            @"var\s+" + name + @"\s*=\s*['""]([^'""]*)['""]");
         return match.Success ? match.Groups[1].Value : "";
     }
 
-    static int ApplyToLoadedComponents(string folder)
+    static int ApplyToLoadedComponents(string host, string folder)
     {
         int count = 0;
         foreach (var manager in FindAll<AnalyticsManager>())
-            count += SetGameFolder(manager, folder) ? 1 : 0;
+            count += SetEndpoint(manager, host, folder) ? 1 : 0;
         foreach (var funnel in FindAll<AnalyticsFunnel>())
-            count += SetGameFolder(funnel, folder) ? 1 : 0;
+            count += SetEndpoint(funnel, host, folder) ? 1 : 0;
         return count;
     }
 
-    static int ApplyToPrefabs(string folder)
+    static int ApplyToPrefabs(string host, string folder)
     {
         string managerGuid = ScriptGuid(typeof(AnalyticsManager));
         string funnelGuid = ScriptGuid(typeof(AnalyticsFunnel));
@@ -157,9 +225,9 @@ static class PeepsAnalyticsSync
                 try
                 {
                     foreach (var manager in root.GetComponentsInChildren<AnalyticsManager>(true))
-                        dirty |= SetGameFolder(manager, folder);
+                        dirty |= SetEndpoint(manager, host, folder);
                     foreach (var funnel in root.GetComponentsInChildren<AnalyticsFunnel>(true))
-                        dirty |= SetGameFolder(funnel, folder);
+                        dirty |= SetEndpoint(funnel, host, folder);
                     if (dirty)
                     {
                         try
@@ -187,15 +255,26 @@ static class PeepsAnalyticsSync
         return count;
     }
 
-    static bool SetGameFolder(Object obj, string folder)
+    static bool SetEndpoint(Object obj, string host, string folder)
     {
         if (obj == null)
             return false;
         var so = new SerializedObject(obj);
-        SerializedProperty prop = so.FindProperty("gameFolder");
-        if (prop == null || prop.stringValue == folder)
+        bool dirty = false;
+        SerializedProperty hostProp = so.FindProperty("serverBaseUrl");
+        SerializedProperty folderProp = so.FindProperty("gameFolder");
+        if (hostProp != null && hostProp.stringValue != host)
+        {
+            hostProp.stringValue = host;
+            dirty = true;
+        }
+        if (folderProp != null && folderProp.stringValue != folder)
+        {
+            folderProp.stringValue = folder;
+            dirty = true;
+        }
+        if (!dirty)
             return false;
-        prop.stringValue = folder;
         so.ApplyModifiedProperties();
         EditorUtility.SetDirty(obj);
         return true;

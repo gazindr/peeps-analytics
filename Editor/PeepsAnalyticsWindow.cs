@@ -5,6 +5,7 @@ using UnityEngine;
 
 class PeepsAnalyticsWindow : EditorWindow
 {
+    string serverHost = "";
     string gameFolder = "";
     string status = "";
     Vector2 scroll;
@@ -13,30 +14,42 @@ class PeepsAnalyticsWindow : EditorWindow
     public static void Open()
     {
         var window = GetWindow<PeepsAnalyticsWindow>(true, "BetterAnalytics");
-        window.minSize = new Vector2(440, 280);
+        window.minSize = new Vector2(440, 320);
         window.Show();
     }
 
     void OnEnable()
     {
+        serverHost = PeepsAnalyticsSync.GuessCurrentHost();
         gameFolder = PeepsAnalyticsSync.GuessCurrentFolder();
     }
 
     void OnGUI()
     {
         EditorGUILayout.Space(8);
-        EditorGUILayout.LabelField("GAME_FOLDER", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("Endpoint", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "Одно имя папки игры на сервере. Сохранится в префаб/сцену (AnalyticsManager, AnalyticsFunnel) и в funnel.js.",
+            "Host — только домен, без https и без /Games. Папка игры — имя проекта на сервере.\n" +
+            "Пример хоста: peepsgames.com. Пути /Games и php подставятся сами.",
             MessageType.Info);
+
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.PrefixLabel("Host");
+        serverHost = EditorGUILayout.TextField(serverHost);
+        EditorGUILayout.EndHorizontal();
 
         EditorGUILayout.BeginHorizontal();
         EditorGUILayout.PrefixLabel("Game Folder");
         gameFolder = EditorGUILayout.TextField(gameFolder);
         EditorGUILayout.EndHorizontal();
 
+        string host = PeepsAnalyticsSettings.SanitizeHost(serverHost);
+        string folder = PeepsAnalyticsSettings.SanitizeFolder(gameFolder);
+        bool canApply = PeepsAnalyticsSettings.IsValidHost(host) &&
+                        PeepsAnalyticsSettings.IsValidFolder(folder);
+
         EditorGUILayout.Space(6);
-        using (new EditorGUI.DisabledScope(!PeepsAnalyticsSettings.IsValid(PeepsAnalyticsSettings.Sanitize(gameFolder))))
+        using (new EditorGUI.DisabledScope(!canApply))
         {
             if (GUILayout.Button("Apply to prefab + funnel.js", GUILayout.Height(28)))
                 Apply();
@@ -80,7 +93,8 @@ class PeepsAnalyticsWindow : EditorWindow
 
     void Apply()
     {
-        status = PeepsAnalyticsSync.ApplyAll(gameFolder);
+        status = PeepsAnalyticsSync.ApplyAll(serverHost, gameFolder);
+        serverHost = PeepsAnalyticsSettings.ServerHost;
         gameFolder = PeepsAnalyticsSettings.GameFolder;
         Repaint();
         Debug.Log("[BetterAnalytics]\n" + status);

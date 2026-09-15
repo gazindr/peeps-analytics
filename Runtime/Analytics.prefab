@@ -45,8 +45,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 93fe07f8ec504aa2a69b32cb5a271135, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  serverBaseUrl: https://peepsgames.com/Games/
-  gameFolder: YourGameFolder
+  serverBaseUrl: 
+  gameFolder: 
   baseUrl: 
   preferMultiplayerEndpoint: 0
   sendInterval: 15
@@ -68,6 +68,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94c3fc67fb7e4fd6bfd0ddaeab7c837b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  serverBaseUrl: https://peepsgames.com/Games/
-  gameFolder: YourGameFolder
+  serverBaseUrl: 
+  gameFolder: 
   funnelUrl: 

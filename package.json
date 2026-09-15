@@ -1,8 +1,8 @@
 {
   "name": "com.peeps.analytics",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "displayName": "BetterAnalytics",
-  "description": "Drop-in Unity analytics manager and WebGL HTML funnel. Add the package from Git, set Game Folder, connect funnel.js in HTML.",
+  "description": "Drop-in Unity analytics manager and WebGL HTML funnel. Add the package from Git, set Host and Game Folder, connect funnel.js in HTML.",
   "unity": "2021.3",
   "documentationUrl": "https://github.com/gazindr/peeps-analytics",
   "changelogUrl": "https://github.com/gazindr/peeps-analytics/releases",

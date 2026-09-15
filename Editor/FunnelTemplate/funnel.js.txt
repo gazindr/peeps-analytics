@@ -1,15 +1,23 @@
 (function () {
     // Per-game: change only this when copying the script to another project.
-    var GAME_FOLDER = 'YourGameFolder';
+    var GAME_FOLDER = '';
 
-    var SERVER_HOST = 'https://peepsgames.com';
+    var SERVER_HOST = '';
     var FUNNEL_NAME = 'HTML_';
     var PHP_FILE = 'funnel.php';
 
     if (window.__htmlFunnelInited) return;
     window.__htmlFunnelInited = true;
 
-    var FUNNEL_URL = SERVER_HOST.replace(/\/+$/, '') + '/Games/' + GAME_FOLDER + '/' + PHP_FILE;
+    function resolveFunnelUrl() {
+        var host = String(SERVER_HOST || '').trim();
+        var folder = String(GAME_FOLDER || '').trim();
+        if (!host || !folder) return '';
+        if (!/^https?:\/\//i.test(host)) host = 'https://' + host;
+        host = host.replace(/\/+$/, '').replace(/\/Games$/i, '');
+        return host + '/Games/' + folder + '/' + PHP_FILE;
+    }
+
     var PLAYER_KEY = 'funnel_player_id_' + GAME_FOLDER;
     var VOWELS = 'aaweyuioo';
     var CONSONANTS = 'qrtpsdghjklzxcvbm';
@@ -157,6 +165,12 @@
                 payload.duration = Math.round(extra.duration * 10) / 10;
         }
         var body = JSON.stringify(payload);
+        var funnelUrl = resolveFunnelUrl();
+        if (!funnelUrl) {
+            logFunnel(key, 'skip', 'empty SERVER_HOST or GAME_FOLDER');
+            if (typeof onDone === 'function') onDone(false);
+            return;
+        }
         if (key === 'start_loading' || key === 'loaded')
             logFunnel(key, 'POST', payload);
         var finished = false;
@@ -168,7 +182,7 @@
             if (typeof onDone === 'function') onDone(!!ok);
         }
         try {
-            fetch(FUNNEL_URL, {
+            fetch(funnelUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: body,
@@ -345,11 +359,12 @@
         getSessionId: sessionId,
         getElapsedSec: elapsedSec,
         getStartedAt: function () { return startedAt; },
-        gameFolder: GAME_FOLDER
+        gameFolder: GAME_FOLDER,
+        serverHost: SERVER_HOST
     };
 
     sessionId();
-    logFunnel('init', 'session', sessionId(), 'url', FUNNEL_URL);
+    logFunnel('init', 'session', sessionId(), 'url', resolveFunnelUrl() || '(not set)');
     setTimeout(function () {
         if (startOk || startInFlight) return;
         logFunnel('start_loading fallback timer');

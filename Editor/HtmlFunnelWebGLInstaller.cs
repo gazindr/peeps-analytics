@@ -86,7 +86,7 @@ public static class HtmlFunnelWebGLInstaller
         File.Copy(src, dst, overwrite: true);
         ConnectFunnelToHtml(installJsIfMissing: false);
         ApplySavedFolderToFunnelJs();
-        Debug.Log("[BetterAnalytics] Installed funnel.js. Set GAME_FOLDER via BetterAnalytics → Game Folder.\n" + dst);
+        Debug.Log("[BetterAnalytics] Installed funnel.js. Set Host and Game Folder via BetterAnalytics → Game Folder.\n" + dst);
     }
 
     public static string IndexHtmlPath
@@ -196,9 +196,14 @@ public static class HtmlFunnelWebGLInstaller
 
     static void ApplySavedFolderToFunnelJs()
     {
-        string folder = PeepsAnalyticsSettings.GameFolder;
-        if (PeepsAnalyticsSettings.IsValid(folder))
-            PeepsAnalyticsSync.ApplyToFunnelJs(folder);
+        string host = PeepsAnalyticsSettings.IsValidHost(PeepsAnalyticsSettings.ServerHost)
+            ? PeepsAnalyticsSettings.ServerHost
+            : null;
+        string folder = PeepsAnalyticsSettings.IsValidFolder(PeepsAnalyticsSettings.GameFolder)
+            ? PeepsAnalyticsSettings.GameFolder
+            : null;
+        if (host != null || folder != null)
+            PeepsAnalyticsSync.ApplyToFunnelJs(host, folder);
     }
 
     public static string ResolveTemplateDir()

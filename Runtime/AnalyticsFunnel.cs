@@ -16,8 +16,8 @@ public class AnalyticsFunnel : MonoBehaviour
     public static AnalyticsFunnel Instance;
 
     [Header("Endpoint (used if AnalyticsManager is missing)")]
-    public string serverBaseUrl = "https://peepsgames.com/Games/";
-    public string gameFolder = "YourGameFolder";
+    public string serverBaseUrl = "";
+    public string gameFolder = "";
 
     [Tooltip("Override full funnel.php URL. Leave empty to build from AnalyticsManager or fields above.")]
     public string funnelUrl = "";
