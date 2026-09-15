@@ -15,10 +15,10 @@ public class AnalyticsManager : MonoBehaviour
     public static AnalyticsManager Instance;
 
     [Header("Server endpoint")]
-    [Tooltip("Host only: peepsgames.com  (no https, no /Games). Paths are added automatically.")]
+    [Tooltip("Host only, e.g. example.com")]
     public string serverBaseUrl = "";
 
-    [Tooltip("Game folder on server. /Games/{folder}/analytics.php is added automatically.")]
+    [Tooltip("Game folder on server")]
     public string gameFolder = "";
 
     [Tooltip("Computed full URL. Filled automatically from serverBaseUrl + gameFolder.")]

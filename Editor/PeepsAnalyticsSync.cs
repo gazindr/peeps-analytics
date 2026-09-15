@@ -18,7 +18,7 @@ static class PeepsAnalyticsSync
         string host = PeepsAnalyticsSettings.SanitizeHost(serverHost);
         string folder = PeepsAnalyticsSettings.SanitizeFolder(gameFolder);
         if (!PeepsAnalyticsSettings.IsValidHost(host))
-            return "Укажи хост, например peepsgames.com (без https и без /Games).";
+            return "Укажи хост, например example.com.";
         if (!PeepsAnalyticsSettings.IsValidFolder(folder))
             return "Укажи имя папки игры на сервере, например НазваниеИгры.";
 

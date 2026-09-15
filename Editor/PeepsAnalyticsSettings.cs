@@ -11,7 +11,7 @@ class PeepsAnalyticsSettingsData
 
 /// <summary>
 /// Per-project host + GAME_FOLDER stored in ProjectSettings (not in the git package).
-/// Host is only the domain, e.g. peepsgames.com — /Games is added at runtime.
+/// Host is only the domain, e.g. example.com.
 /// </summary>
 static class PeepsAnalyticsSettings
 {

@@ -29,8 +29,7 @@ class PeepsAnalyticsWindow : EditorWindow
         EditorGUILayout.Space(8);
         EditorGUILayout.LabelField("Endpoint", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "Host — только домен, без https и без /Games. Папка игры — имя проекта на сервере.\n" +
-            "Пример хоста: peepsgames.com. Пути /Games и php подставятся сами.",
+            "Host — только домен, например example.com. Папка игры — имя проекта на сервере.",
             MessageType.Info);
 
         EditorGUILayout.BeginHorizontal();
