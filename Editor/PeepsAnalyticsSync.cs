@@ -57,6 +57,32 @@ static class PeepsAnalyticsSync
             SetEndpoint(remote, host, folder);
     }
 
+    public static void ApplyRemoteFromAnalytics(RemoteConfigLoader remote)
+    {
+        if (remote == null)
+            return;
+
+        string host = "";
+        string folder = "";
+        foreach (var manager in FindAll<AnalyticsManager>())
+        {
+            if (manager == null)
+                continue;
+            if (string.IsNullOrEmpty(host) && !string.IsNullOrEmpty(manager.serverBaseUrl))
+                host = PeepsAnalyticsSettings.SanitizeHost(manager.serverBaseUrl);
+            if (string.IsNullOrEmpty(folder) && PeepsAnalyticsSettings.IsValidFolder(manager.gameFolder))
+                folder = manager.gameFolder;
+        }
+
+        if (!PeepsAnalyticsSettings.IsValidHost(host))
+            host = PeepsAnalyticsSettings.ServerHost;
+        if (!PeepsAnalyticsSettings.IsValidFolder(folder))
+            folder = PeepsAnalyticsSettings.GameFolder;
+
+        if (PeepsAnalyticsSettings.IsValidHost(host) && PeepsAnalyticsSettings.IsValidFolder(folder))
+            SetEndpoint(remote, host, folder);
+    }
+
     public static string GuessCurrentHost()
     {
         string saved = PeepsAnalyticsSettings.ServerHost;

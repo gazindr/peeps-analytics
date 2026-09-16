@@ -58,7 +58,19 @@ public class RemoteConfigLoader : MonoBehaviour
     IEnumerator Start()
     {
         yield return null;
+        TryAdoptAnalyticsEndpoint();
         yield return FetchAndApply();
+    }
+
+    public void TryAdoptAnalyticsEndpoint()
+    {
+        var analytics = AnalyticsManager.Instance;
+        if (analytics == null)
+            return;
+        if (!string.IsNullOrEmpty(analytics.serverBaseUrl))
+            serverBaseUrl = analytics.serverBaseUrl;
+        if (!string.IsNullOrEmpty(analytics.gameFolder))
+            gameFolder = analytics.gameFolder;
     }
 
     public static string GetString(string key, string defaultValue = "")

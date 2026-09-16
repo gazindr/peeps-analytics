@@ -1,0 +1,27 @@
+using UnityEngine;
+
+public class RemoteConfigActions : MonoBehaviour
+{
+    void OnEnable()
+    {
+        RemoteConfigLoader.ConfigUpdated += Apply;
+        if (RemoteConfigLoader.Inited)
+            Apply();
+    }
+
+    void OnDisable()
+    {
+        RemoteConfigLoader.ConfigUpdated -= Apply;
+    }
+
+    void Apply()
+    {
+        string version = RemoteConfigLoader.GetString("Version", "0.0.0");
+        int timeScale = RemoteConfigLoader.GetInt("TimeScale", 100);
+        bool showChat = RemoteConfigLoader.GetBool("ShowChat", true);
+
+        Debug.Log("[RemoteConfigActions] Version=" + version +
+                  " TimeScale=" + timeScale +
+                  " ShowChat=" + showChat);
+    }
+}

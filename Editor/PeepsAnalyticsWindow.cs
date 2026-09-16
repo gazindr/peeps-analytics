@@ -14,7 +14,7 @@ class PeepsAnalyticsWindow : EditorWindow
     public static void Open()
     {
         var window = GetWindow<PeepsAnalyticsWindow>(true, "BetterAnalytics");
-        window.minSize = new Vector2(440, 320);
+        window.minSize = new Vector2(440, 400);
         window.Show();
     }
 
@@ -53,6 +53,13 @@ class PeepsAnalyticsWindow : EditorWindow
             if (GUILayout.Button("Apply to prefab + funnel.js", GUILayout.Height(28)))
                 Apply();
         }
+
+        EditorGUILayout.Space(10);
+        EditorGUILayout.LabelField("Scene", EditorStyles.boldLabel);
+        if (GUILayout.Button("Add Analytics object to scene", GUILayout.Height(28)))
+            HtmlFunnelWebGLInstaller.AddAnalyticsToScene();
+        if (GUILayout.Button("Add Remote Config object to scene", GUILayout.Height(28)))
+            HtmlFunnelWebGLInstaller.AddRemoteConfigToScene();
 
         EditorGUILayout.Space(10);
         EditorGUILayout.LabelField("HTML funnel", EditorStyles.boldLabel);

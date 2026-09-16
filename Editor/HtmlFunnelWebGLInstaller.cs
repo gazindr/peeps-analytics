@@ -25,25 +25,30 @@ public static class HtmlFunnelWebGLInstaller
         var go = new GameObject("Analytics");
         go.AddComponent<AnalyticsManager>();
         go.AddComponent<AnalyticsFunnel>();
-        go.AddComponent<RemoteConfigLoader>();
         PeepsAnalyticsSync.ApplyToGameObject(go);
         Undo.RegisterCreatedObjectUndo(go, "Add Analytics");
         Selection.activeGameObject = go;
     }
 
-    [MenuItem(MenuRoot + "Install funnel.js into WebGL template", false, 21)]
+    [MenuItem(MenuRoot + "Add Remote Config object to scene", false, 21)]
+    public static void AddRemoteConfigToScene()
+    {
+        PeepsRemoteConfigMenu.AddToScene();
+    }
+
+    [MenuItem(MenuRoot + "Install funnel.js into WebGL template", false, 22)]
     public static void InstallFromMenu()
     {
         Install(overwrite: false, logAlways: true);
     }
 
-    [MenuItem(MenuRoot + "Reinstall funnel.js (overwrite)", false, 22)]
+    [MenuItem(MenuRoot + "Reinstall funnel.js (overwrite)", false, 23)]
     public static void ReinstallFromMenu()
     {
         Install(overwrite: true, logAlways: true);
     }
 
-    [MenuItem(MenuRoot + "Connect funnel.js in HTML", false, 23)]
+    [MenuItem(MenuRoot + "Connect funnel.js in HTML", false, 24)]
     public static void ConnectHtmlFromMenu()
     {
         string result = ConnectFunnelToHtml(installJsIfMissing: true);
