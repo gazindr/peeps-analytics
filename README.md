@@ -1,6 +1,6 @@
 # Analytics
 
-Unity-пакет: менеджер аналитики и HTML-воронка загрузки.
+Unity-пакет: менеджер аналитики, remote config и HTML-воронка загрузки.
 
 ## Установка в Unity
 
@@ -15,7 +15,7 @@ https://github.com/gazindr/peeps-analytics.git
 4. **Add**
 
 После импорта:
-- **BetterAnalytics → Game Folder** — сверху **Host**, ниже папка игры. Хост изначально пустой: впиши только домен, например `example.com`. Папка игры — имя проекта на сервере (`НазваниеИгры`). Apply запишет оба значения в префаб/сцену и в `funnel.js`
+- **BetterAnalytics → Game Folder** — сверху **Host**, ниже папка игры. Хост изначально пустой: впиши только домен, например `example.com`. Папка игры — имя проекта на сервере (`НазваниеИгры`). Apply запишет оба значения в префаб/сцену, в `funnel.js` и в remote config
 - **Connect funnel.js in HTML** (в том же окне или в меню) — впишет в `index.html` шаблона первой строкой в `<head>`:
 
 ```html
@@ -34,6 +34,7 @@ https://github.com/gazindr/peeps-analytics.git
 | `AnalyticsFunnel` | `SetFunnel("Level1", 1)` → `funnel.php` |
 | `funnel.js` | HTML-воронка `start_loading` / `loaded` до старта Unity |
 | `HtmlFunnel.jslib` | общий `player_id` у HTML и C# |
+| `RemoteConfigLoader` | флаги из `config.json` на том же Host + Game Folder |
 
 Вызовы из игры:
 
@@ -41,4 +42,17 @@ https://github.com/gazindr/peeps-analytics.git
 AnalyticsManager.Instance.SendCustomEvent("ShopOpen");
 AnalyticsFunnel.Instance.SetFunnel("Level1", "Start");
 AnalyticsFunnel.Instance.SetFunnel("Level1", 1);
+
+RemoteConfigLoader.GetString("Version");
+RemoteConfigLoader.GetInt("TimeScale", 100);
+RemoteConfigLoader.GetBool("ShowChat", true);
+```
+
+На сервере в папку игры положи `config.json` рядом с аналитикой:
+
+```json
+{
+  "Version": "0.0.0",
+  "ShowChat": "1"
+}
 ```

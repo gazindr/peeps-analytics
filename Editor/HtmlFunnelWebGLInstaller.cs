@@ -25,6 +25,7 @@ public static class HtmlFunnelWebGLInstaller
         var go = new GameObject("Analytics");
         go.AddComponent<AnalyticsManager>();
         go.AddComponent<AnalyticsFunnel>();
+        go.AddComponent<RemoteConfigLoader>();
         PeepsAnalyticsSync.ApplyToGameObject(go);
         Undo.RegisterCreatedObjectUndo(go, "Add Analytics");
         Selection.activeGameObject = go;

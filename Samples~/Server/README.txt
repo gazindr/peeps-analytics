@@ -1,1 +1,1 @@
-Optional CSV backend. Put analytics.php into your game folder on the server.
+Put analytics.php and config.json into your game folder on the server.

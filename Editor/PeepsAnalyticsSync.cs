@@ -53,6 +53,8 @@ static class PeepsAnalyticsSync
             SetEndpoint(manager, host, folder);
         foreach (var funnel in go.GetComponents<AnalyticsFunnel>())
             SetEndpoint(funnel, host, folder);
+        foreach (var remote in go.GetComponents<RemoteConfigLoader>())
+            SetEndpoint(remote, host, folder);
     }
 
     public static string GuessCurrentHost()
@@ -84,6 +86,15 @@ static class PeepsAnalyticsSync
                 return host;
         }
 
+        foreach (var remote in FindAll<RemoteConfigLoader>())
+        {
+            if (remote == null)
+                continue;
+            string host = PeepsAnalyticsSettings.SanitizeHost(remote.serverBaseUrl);
+            if (PeepsAnalyticsSettings.IsValidHost(host))
+                return host;
+        }
+
         return saved;
     }
 
@@ -107,6 +118,12 @@ static class PeepsAnalyticsSync
         {
             if (funnel != null && PeepsAnalyticsSettings.IsValidFolder(funnel.gameFolder))
                 return funnel.gameFolder;
+        }
+
+        foreach (var remote in FindAll<RemoteConfigLoader>())
+        {
+            if (remote != null && PeepsAnalyticsSettings.IsValidFolder(remote.gameFolder))
+                return remote.gameFolder;
         }
 
         return saved;
@@ -186,6 +203,8 @@ static class PeepsAnalyticsSync
             count += SetEndpoint(manager, host, folder) ? 1 : 0;
         foreach (var funnel in FindAll<AnalyticsFunnel>())
             count += SetEndpoint(funnel, host, folder) ? 1 : 0;
+        foreach (var remote in FindAll<RemoteConfigLoader>())
+            count += SetEndpoint(remote, host, folder) ? 1 : 0;
         return count;
     }
 
@@ -193,6 +212,7 @@ static class PeepsAnalyticsSync
     {
         string managerGuid = ScriptGuid(typeof(AnalyticsManager));
         string funnelGuid = ScriptGuid(typeof(AnalyticsFunnel));
+        string remoteGuid = ScriptGuid(typeof(RemoteConfigLoader));
         int count = 0;
 
         string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab");
@@ -214,7 +234,8 @@ static class PeepsAnalyticsSync
 
                 bool hasManager = !string.IsNullOrEmpty(managerGuid) && yaml.Contains(managerGuid);
                 bool hasFunnel = !string.IsNullOrEmpty(funnelGuid) && yaml.Contains(funnelGuid);
-                if (!hasManager && !hasFunnel)
+                bool hasRemote = !string.IsNullOrEmpty(remoteGuid) && yaml.Contains(remoteGuid);
+                if (!hasManager && !hasFunnel && !hasRemote)
                     continue;
 
                 GameObject root;
@@ -228,6 +249,8 @@ static class PeepsAnalyticsSync
                         dirty |= SetEndpoint(manager, host, folder);
                     foreach (var funnel in root.GetComponentsInChildren<AnalyticsFunnel>(true))
                         dirty |= SetEndpoint(funnel, host, folder);
+                    foreach (var remote in root.GetComponentsInChildren<RemoteConfigLoader>(true))
+                        dirty |= SetEndpoint(remote, host, folder);
                     if (dirty)
                     {
                         try
@@ -262,6 +285,8 @@ static class PeepsAnalyticsSync
         var so = new SerializedObject(obj);
         bool dirty = false;
         SerializedProperty hostProp = so.FindProperty("serverBaseUrl");
+        if (hostProp == null)
+            hostProp = so.FindProperty("serverHost");
         SerializedProperty folderProp = so.FindProperty("gameFolder");
         if (hostProp != null && hostProp.stringValue != host)
         {

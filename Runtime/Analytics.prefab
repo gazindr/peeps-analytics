@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4064858479240349549}
   - component: {fileID: 5299051501253128464}
   - component: {fileID: 7299051501253128465}
+  - component: {fileID: 8299051501253128466}
   m_Layer: 0
   m_Name: Analytics
   m_TagString: Untagged
@@ -71,3 +72,20 @@ MonoBehaviour:
   serverBaseUrl: 
   gameFolder: 
   funnelUrl: 
+--- !u!114 &8299051501253128466
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8310824727847750561}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7c1e4a92d8f4c6ab3e15f90d4a2c8e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  serverBaseUrl: 
+  gameFolder: 
+  fetchTimeoutSeconds: 8
+  showDebug: 1
+  remoteDatas: []
