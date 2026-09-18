@@ -41,6 +41,7 @@ public class AnalyticsManager : MonoBehaviour
     public bool countPlaytime;
     public string _device = "";
     public string _platformName = "";
+    public string _gameVersion = "";
     private string nullFlag = " ";
     private bool inited;
     private bool endpointConfiguredExternally;
@@ -57,6 +58,7 @@ public class AnalyticsManager : MonoBehaviour
         public int playtime_player;
         public string platformName;
         public string device;
+        public string game_version;
         public float fps;
     }
 
@@ -151,6 +153,7 @@ public class AnalyticsManager : MonoBehaviour
         sendInterval = timer;
         _platformName = DetectPlatformName();
         _device = DetectDevice();
+        _gameVersion = ResolveGameVersion();
         DontDestroyOnLoad(gameObject);
 
         bool returningPlayer = PlayerPrefs.HasKey("MyNick");
@@ -254,6 +257,15 @@ public class AnalyticsManager : MonoBehaviour
             }
         }
         return null;
+    }
+
+    public static string ResolveGameVersion()
+    {
+        string version = Application.version ?? string.Empty;
+        version = version.Trim();
+        if (version.Length > 32)
+            version = version.Substring(0, 32);
+        return version;
     }
 
     static string DetectPlatformName()
@@ -446,6 +458,7 @@ public class AnalyticsManager : MonoBehaviour
         data.playtime_player = _pt;
         data.device = _device;
         data.platformName = _platformName;
+        data.game_version = string.IsNullOrEmpty(_gameVersion) ? ResolveGameVersion() : _gameVersion;
         data.fps = ConsumeAverageFps();
         PlayerPrefs.SetInt("Playtime", _pt);
         string json = JsonUtility.ToJson(data);

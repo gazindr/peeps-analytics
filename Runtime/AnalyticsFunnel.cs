@@ -33,6 +33,7 @@ public class AnalyticsFunnel : MonoBehaviour
         public string session_id;
         public string platformName;
         public string device;
+        public string game_version;
         public float duration;
     }
 
@@ -163,6 +164,13 @@ public class AnalyticsFunnel : MonoBehaviour
         return Application.isMobilePlatform ? "mobile" : "pc";
     }
 
+    string ResolveGameVersion()
+    {
+        if (AnalyticsManager.Instance != null && !string.IsNullOrEmpty(AnalyticsManager.Instance._gameVersion))
+            return AnalyticsManager.Instance._gameVersion;
+        return AnalyticsManager.ResolveGameVersion();
+    }
+
     IEnumerator SendFunnel(string funnelName, string key)
     {
         string url = ResolveFunnelUrl();
@@ -201,6 +209,7 @@ public class AnalyticsFunnel : MonoBehaviour
             session_id = sessionId,
             platformName = ResolvePlatform(),
             device = ResolveDevice(),
+            game_version = ResolveGameVersion(),
             duration = 0f
         };
         if (string.Equals(key, "gameready", StringComparison.OrdinalIgnoreCase) ||

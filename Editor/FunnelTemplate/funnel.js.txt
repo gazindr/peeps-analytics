@@ -5,6 +5,7 @@
     var SERVER_HOST = '';
     var FUNNEL_NAME = 'HTML_';
     var PHP_FILE = 'funnel.php';
+    var GAME_VERSION = '__BAKED_GAME_VERSION__';
 
     if (window.__htmlFunnelInited) return;
     window.__htmlFunnelInited = true;
@@ -146,6 +147,27 @@
         return Math.max(0, (Date.now() - startedAt) / 1000);
     }
 
+    function looksLikeVersionPlaceholder(value) {
+        var s = String(value || '');
+        return !s || s.indexOf('__GAME') >= 0 || s.indexOf('{{{') >= 0 || s.indexOf('__BAKED') >= 0;
+    }
+
+    function gameVersion() {
+        try {
+            var fromWindow = window['__GAME_VERSION__'];
+            if (!looksLikeVersionPlaceholder(fromWindow))
+                return String(fromWindow).trim().slice(0, 32);
+        } catch (e) { /* ignore */ }
+        if (!looksLikeVersionPlaceholder(GAME_VERSION))
+            return String(GAME_VERSION).trim().slice(0, 32);
+        try {
+            var meta = window.config && window.config.metadata && window.config.metadata.product_version;
+            if (!looksLikeVersionPlaceholder(meta))
+                return String(meta).trim().slice(0, 32);
+        } catch (e2) { /* ignore */ }
+        return '';
+    }
+
     function send(key, extra, onDone) {
         var payload = {
             player_id: lockPlayerId(),
@@ -154,6 +176,7 @@
             session_id: sessionId(),
             platformName: platformName(),
             device: deviceName(),
+            game_version: gameVersion(),
             started_at: startedAt
         };
         if (extra && typeof extra === 'object') {
@@ -360,7 +383,8 @@
         getElapsedSec: elapsedSec,
         getStartedAt: function () { return startedAt; },
         gameFolder: GAME_FOLDER,
-        serverHost: SERVER_HOST
+        serverHost: SERVER_HOST,
+        gameVersion: gameVersion
     };
 
     sessionId();
