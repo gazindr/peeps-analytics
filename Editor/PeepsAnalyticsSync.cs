@@ -304,7 +304,7 @@ static class PeepsAnalyticsSync
         return count;
     }
 
-    static bool SetEndpoint(Object obj, string host, string folder)
+    static bool SetEndpoint(UnityEngine.Object obj, string host, string folder)
     {
         if (obj == null)
             return false;
@@ -331,12 +331,12 @@ static class PeepsAnalyticsSync
         return true;
     }
 
-    static T[] FindAll<T>() where T : Object
+    static T[] FindAll<T>() where T : UnityEngine.Object
     {
 #if UNITY_2023_1_OR_NEWER
-        return Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        return UnityEngine.Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None);
 #else
-        return Object.FindObjectsOfType<T>(true);
+        return UnityEngine.Object.FindObjectsOfType<T>(true);
 #endif
     }
 

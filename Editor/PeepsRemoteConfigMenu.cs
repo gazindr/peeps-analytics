@@ -80,9 +80,9 @@ static class PeepsRemoteConfigMenu
     static RemoteConfigLoader FindExistingLoader()
     {
 #if UNITY_2023_1_OR_NEWER
-        var found = Object.FindObjectsByType<RemoteConfigLoader>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        var found = UnityEngine.Object.FindObjectsByType<RemoteConfigLoader>(FindObjectsInactive.Include, FindObjectsSortMode.None);
 #else
-        var found = Object.FindObjectsOfType<RemoteConfigLoader>(true);
+        var found = UnityEngine.Object.FindObjectsOfType<RemoteConfigLoader>(true);
 #endif
         return found != null && found.Length > 0 ? found[0] : null;
     }
