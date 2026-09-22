@@ -20,6 +20,7 @@ https://github.com/gazindr/peeps-analytics.git
 - **BetterAnalytics → Add Remote Config object to scene** — Host и Game Folder подставятся из аналитики
 - **Connect funnel.js in HTML** (в том же окне или в меню) — впишет в `index.html` шаблона первой строкой в `<head>`:
 
+
 ```html
 <script src="./funnel.js"></script>
 ```
