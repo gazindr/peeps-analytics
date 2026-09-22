@@ -184,6 +184,17 @@ public class AnalyticsManager : MonoBehaviour
         sendTimer = 0f;
         Debug.Log("Analytics inited: " + baseUrl);
         SendAnalytics(nullFlag);
+        TrySendGameReady();
+    }
+
+    void TrySendGameReady()
+    {
+        var funnel = AnalyticsFunnel.Instance != null
+            ? AnalyticsFunnel.Instance
+            : GetComponent<AnalyticsFunnel>();
+        if (funnel == null)
+            return;
+        funnel.SetFunnel("HTML_", "gameready");
     }
 
     /// <summary>

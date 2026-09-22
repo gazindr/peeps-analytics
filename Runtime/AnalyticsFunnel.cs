@@ -23,6 +23,7 @@ public class AnalyticsFunnel : MonoBehaviour
     public string funnelUrl = "";
 
     string sessionId = "";
+    static bool gameReadySent;
 
     [Serializable]
     public class FunnelPayload
@@ -35,6 +36,7 @@ public class AnalyticsFunnel : MonoBehaviour
         public string device;
         public string game_version;
         public float duration;
+        public float gameready;
     }
 
     [Serializable]
@@ -78,6 +80,14 @@ public class AnalyticsFunnel : MonoBehaviour
         {
             Debug.LogWarning($"[AnalyticsFunnel] Bad checkpoint: '{checkpoint}'");
             return;
+        }
+
+        if (string.Equals(name, "HTML_", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(cp, "gameready", StringComparison.OrdinalIgnoreCase))
+        {
+            if (gameReadySent)
+                return;
+            gameReadySent = true;
         }
 
         try
@@ -171,6 +181,14 @@ public class AnalyticsFunnel : MonoBehaviour
         return AnalyticsManager.ResolveGameVersion();
     }
 
+    static float ResolveTimingElapsed()
+    {
+        float elapsed = HtmlFunnelJs.GetElapsedSec();
+        if (elapsed <= 0f)
+            elapsed = Time.realtimeSinceStartup;
+        return elapsed > 0f ? elapsed : 0f;
+    }
+
     IEnumerator SendFunnel(string funnelName, string key)
     {
         string url = ResolveFunnelUrl();
@@ -210,14 +228,21 @@ public class AnalyticsFunnel : MonoBehaviour
             platformName = ResolvePlatform(),
             device = ResolveDevice(),
             game_version = ResolveGameVersion(),
-            duration = 0f
+            duration = 0f,
+            gameready = 0f
         };
         if (string.Equals(key, "gameready", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(key, "loaded", StringComparison.OrdinalIgnoreCase))
         {
-            float elapsed = HtmlFunnelJs.GetElapsedSec();
+            float elapsed = ResolveTimingElapsed();
             if (elapsed > 0f)
+            {
                 data.duration = elapsed;
+                if (string.Equals(key, "gameready", StringComparison.OrdinalIgnoreCase))
+                    data.gameready = elapsed;
+            }
+            if (string.Equals(key, "gameready", StringComparison.OrdinalIgnoreCase))
+                HtmlFunnelJs.LogGameReady(elapsed);
         }
 
         string json = JsonUtility.ToJson(data);

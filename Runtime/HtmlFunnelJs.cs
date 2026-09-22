@@ -15,6 +15,9 @@ public static class HtmlFunnelJs
 
     [DllImport("__Internal")]
     static extern float HtmlFunnel_GetElapsedSec();
+
+    [DllImport("__Internal")]
+    static extern void HtmlFunnel_LogGameReady(float sec);
 #endif
 
     public static string GetPlayerId()
@@ -66,5 +69,24 @@ public static class HtmlFunnelJs
         }
 #endif
         return 0f;
+    }
+
+    public static void LogGameReady(float sec)
+    {
+        if (sec < 0f || float.IsNaN(sec) || float.IsInfinity(sec))
+            sec = 0f;
+        string line = "[HTML funnel] game ready in " + (System.Math.Round(sec * 10f) / 10f).ToString("0.0") + "s";
+#if UNITY_WEBGL && !UNITY_EDITOR
+        try
+        {
+            HtmlFunnel_LogGameReady(sec);
+            return;
+        }
+        catch
+        {
+            // Plugin missing or template without funnel.js
+        }
+#endif
+        UnityEngine.Debug.Log(line);
     }
 }

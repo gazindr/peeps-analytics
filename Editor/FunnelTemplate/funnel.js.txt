@@ -31,12 +31,24 @@
     var playerContextReady = false;
     var startedAt = Date.now();
 
+    function formatLoadSec(sec) {
+        var n = Number(sec);
+        if (!isFinite(n) || n < 0) n = 0;
+        return (Math.round(n * 10) / 10).toFixed(1);
+    }
+
     function logFunnel() {
         try {
             var args = ['[HTML funnel]'];
             for (var i = 0; i < arguments.length; i++) args.push(arguments[i]);
             console.log.apply(console, args);
         } catch (e) { /* ignore */ }
+    }
+
+    function logGameReady(sec) {
+        if (sec == null || !isFinite(Number(sec)))
+            sec = elapsedSec();
+        logFunnel('game ready in ' + formatLoadSec(sec) + 's');
     }
 
     function randomInt(maxExclusive) {
@@ -262,7 +274,9 @@
     function markLoaded() {
         if (loadedSent) return;
         loadedSent = true;
-        logFunnel('loaded requested', 'startOk=', startOk);
+        var loadSec = elapsedSec();
+        logFunnel('loaded requested', 'startOk=', startOk, 'load=' + formatLoadSec(loadSec) + 's');
+        logFunnel('game loaded in ' + formatLoadSec(loadSec) + 's');
         function sendLoaded() {
             send('loaded', { gameloading: elapsedSec() });
         }
@@ -382,6 +396,7 @@
         getSessionId: sessionId,
         getElapsedSec: elapsedSec,
         getStartedAt: function () { return startedAt; },
+        logGameReady: logGameReady,
         gameFolder: GAME_FOLDER,
         serverHost: SERVER_HOST,
         gameVersion: gameVersion

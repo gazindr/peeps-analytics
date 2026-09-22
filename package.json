@@ -1,6 +1,6 @@
 {
   "name": "com.peeps.analytics",
-  "version": "1.7.1",
+  "version": "1.8.0",
   "displayName": "BetterAnalytics",
   "description": "Drop-in Unity analytics, remote config, and WebGL HTML funnel. Add the package from Git, set Host and Game Folder, connect funnel.js in HTML.",
   "unity": "2021.3",

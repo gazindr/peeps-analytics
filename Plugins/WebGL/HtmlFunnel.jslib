@@ -29,5 +29,19 @@ mergeInto(LibraryManager.library, {
                 return window.funnel.getElapsedSec();
         } catch (e) { /* ignore */ }
         return 0;
+    },
+
+    HtmlFunnel_LogGameReady: function (sec) {
+        try {
+            if (window.funnel && typeof window.funnel.logGameReady === 'function') {
+                window.funnel.logGameReady(sec);
+                return;
+            }
+        } catch (e) { /* ignore */ }
+        try {
+            var n = Number(sec);
+            if (!isFinite(n) || n < 0) n = 0;
+            console.log('[HTML funnel] game ready in ' + (Math.round(n * 10) / 10).toFixed(1) + 's');
+        } catch (e2) { /* ignore */ }
     }
 });

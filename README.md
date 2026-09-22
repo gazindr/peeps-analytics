@@ -30,9 +30,9 @@ https://github.com/gazindr/peeps-analytics.git
 
 | Часть | Назначение |
 | --- | --- |
-| `AnalyticsManager` | heartbeat, playtime, FPS, кастомные события → `analytics.php` |
-| `AnalyticsFunnel` | `SetFunnel("Level1", 1)` → `funnel.php` |
-| `funnel.js` | HTML-воронка `start_loading` / `loaded` до старта Unity |
+| `AnalyticsManager` | heartbeat, playtime, FPS, кастомные события → `analytics.php`. На старте шлёт `HTML_ / gameready` |
+| `AnalyticsFunnel` | `SetFunnel("Level1", 1)` → `funnel.php`. `gameready` считает время от того же старта, что и `gameloading` |
+| `funnel.js` | HTML-воронка `start_loading` / `loaded` до старта Unity, пишет `game loaded` / `game ready` в консоль |
 | `HtmlFunnel.jslib` | общий `player_id` у HTML и C# |
 | `RemoteConfigLoader` | только получает флаги |
 | `RemoteConfigActions` | закрытый скрипт игры: читает лоадер и применяет флаги |
