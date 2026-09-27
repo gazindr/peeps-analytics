@@ -15,7 +15,7 @@ https://github.com/gazindr/peeps-analytics.git
 4. **Add**
 
 После импорта:
-- **BetterAnalytics → Game Folder** — сверху **Host**, ниже папка игры. Хост изначально пустой: впиши только домен, например `example.com`. Папка игры — имя проекта на сервере (`НазваниеИгры`). Apply запишет оба значения в префаб/сцену и в `funnel.js`
+- **BetterAnalytics → Game Folder** — сверху **Host**, ниже папка игры. Хост изначально пустой: впиши только домен, например `example.com`. Папка игры — имя проекта на сервере (`НазваниеИгры`). Apply пишет оба значения в объекты сцены, в префабы `Analytics` / `SDK` / `RemoteConfig` и в `funnel.js`. Весь проект он не сканирует.
 - **BetterAnalytics → Add Analytics object to scene**
 - **BetterAnalytics → Add Remote Config object to scene** — Host и Game Folder подставятся из аналитики
 - **Connect funnel.js in HTML** (в том же окне или в меню) — впишет в `index.html` шаблона первой строкой в `<head>`:

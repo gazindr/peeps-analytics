@@ -25,7 +25,7 @@ static class PeepsRemoteConfigMenu
 
     static void FinishAddToScene()
     {
-        RemoteConfigLoader loader = FindExistingLoader();
+        Component loader = FindExistingLoader();
         GameObject go;
         if (loader != null)
         {
@@ -41,9 +41,12 @@ static class PeepsRemoteConfigMenu
         PeepsAnalyticsSync.ApplyRemoteFromAnalytics(loader);
         AddActionsComponent(go);
         Selection.activeGameObject = go;
+        var so = new SerializedObject(loader);
+        string host = (so.FindProperty("serverBaseUrl") ?? so.FindProperty("serverHost"))?.stringValue;
+        string folder = so.FindProperty("gameFolder")?.stringValue;
         Debug.Log("[BetterAnalytics] Remote Config on " + go.name +
-                  " host=" + loader.serverBaseUrl +
-                  " folder=" + loader.gameFolder);
+                  " host=" + host +
+                  " folder=" + folder);
     }
 
     static bool EnsureActionsScript()
@@ -77,14 +80,20 @@ static class PeepsRemoteConfigMenu
         Undo.AddComponent(go, type);
     }
 
-    static RemoteConfigLoader FindExistingLoader()
+    static Component FindExistingLoader()
     {
-#if UNITY_2023_1_OR_NEWER
-        var found = UnityEngine.Object.FindObjectsByType<RemoteConfigLoader>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-#else
-        var found = UnityEngine.Object.FindObjectsOfType<RemoteConfigLoader>(true);
-#endif
-        return found != null && found.Length > 0 ? found[0] : null;
+        Component fallback = null;
+        foreach (var obj in PeepsAnalyticsSync.FindEndpointObjectsInScene("RemoteConfigLoader"))
+        {
+            var component = obj as Component;
+            if (component == null)
+                continue;
+            if (string.Equals(component.gameObject.name, "SDK", StringComparison.OrdinalIgnoreCase))
+                return component;
+            if (fallback == null)
+                fallback = component;
+        }
+        return fallback;
     }
 
     static Type FindActionsType()

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using UnityEditor;
@@ -57,21 +59,24 @@ static class PeepsAnalyticsSync
             SetEndpoint(remote, host, folder);
     }
 
-    public static void ApplyRemoteFromAnalytics(RemoteConfigLoader remote)
+    public static void ApplyRemoteFromAnalytics(UnityEngine.Object remote)
     {
         if (remote == null)
             return;
 
         string host = "";
         string folder = "";
-        foreach (var manager in FindAll<AnalyticsManager>())
+        foreach (var obj in FindEndpointObjectsInScene("AnalyticsManager"))
         {
-            if (manager == null)
+            if (obj == null)
                 continue;
-            if (string.IsNullOrEmpty(host) && !string.IsNullOrEmpty(manager.serverBaseUrl))
-                host = PeepsAnalyticsSettings.SanitizeHost(manager.serverBaseUrl);
-            if (string.IsNullOrEmpty(folder) && PeepsAnalyticsSettings.IsValidFolder(manager.gameFolder))
-                folder = manager.gameFolder;
+            var so = new SerializedObject(obj);
+            SerializedProperty hostProp = so.FindProperty("serverBaseUrl") ?? so.FindProperty("serverHost");
+            SerializedProperty folderProp = so.FindProperty("gameFolder");
+            if (string.IsNullOrEmpty(host) && hostProp != null && !string.IsNullOrEmpty(hostProp.stringValue))
+                host = PeepsAnalyticsSettings.SanitizeHost(hostProp.stringValue);
+            if (string.IsNullOrEmpty(folder) && folderProp != null && PeepsAnalyticsSettings.IsValidFolder(folderProp.stringValue))
+                folder = folderProp.stringValue;
         }
 
         if (!PeepsAnalyticsSettings.IsValidHost(host))
@@ -94,29 +99,15 @@ static class PeepsAnalyticsSync
         if (PeepsAnalyticsSettings.IsValidHost(jsHost))
             return jsHost;
 
-        foreach (var manager in FindAll<AnalyticsManager>())
+        foreach (var obj in FindEndpointObjectsInScene())
         {
-            if (manager == null)
+            if (obj == null)
                 continue;
-            string host = PeepsAnalyticsSettings.SanitizeHost(manager.serverBaseUrl);
-            if (PeepsAnalyticsSettings.IsValidHost(host))
-                return host;
-        }
-
-        foreach (var funnel in FindAll<AnalyticsFunnel>())
-        {
-            if (funnel == null)
+            var so = new SerializedObject(obj);
+            SerializedProperty hostProp = so.FindProperty("serverBaseUrl") ?? so.FindProperty("serverHost");
+            if (hostProp == null)
                 continue;
-            string host = PeepsAnalyticsSettings.SanitizeHost(funnel.serverBaseUrl);
-            if (PeepsAnalyticsSettings.IsValidHost(host))
-                return host;
-        }
-
-        foreach (var remote in FindAll<RemoteConfigLoader>())
-        {
-            if (remote == null)
-                continue;
-            string host = PeepsAnalyticsSettings.SanitizeHost(remote.serverBaseUrl);
+            string host = PeepsAnalyticsSettings.SanitizeHost(hostProp.stringValue);
             if (PeepsAnalyticsSettings.IsValidHost(host))
                 return host;
         }
@@ -134,22 +125,14 @@ static class PeepsAnalyticsSync
         if (PeepsAnalyticsSettings.IsValidFolder(fromJs))
             return fromJs;
 
-        foreach (var manager in FindAll<AnalyticsManager>())
+        foreach (var obj in FindEndpointObjectsInScene())
         {
-            if (manager != null && PeepsAnalyticsSettings.IsValidFolder(manager.gameFolder))
-                return manager.gameFolder;
-        }
-
-        foreach (var funnel in FindAll<AnalyticsFunnel>())
-        {
-            if (funnel != null && PeepsAnalyticsSettings.IsValidFolder(funnel.gameFolder))
-                return funnel.gameFolder;
-        }
-
-        foreach (var remote in FindAll<RemoteConfigLoader>())
-        {
-            if (remote != null && PeepsAnalyticsSettings.IsValidFolder(remote.gameFolder))
-                return remote.gameFolder;
+            if (obj == null)
+                continue;
+            var so = new SerializedObject(obj);
+            SerializedProperty folderProp = so.FindProperty("gameFolder");
+            if (folderProp != null && PeepsAnalyticsSettings.IsValidFolder(folderProp.stringValue))
+                return folderProp.stringValue;
         }
 
         return saved;
@@ -222,47 +205,41 @@ static class PeepsAnalyticsSync
         return match.Success ? match.Groups[1].Value : "";
     }
 
+    static readonly string[] EndpointTypeNames =
+    {
+        "AnalyticsManager",
+        "AnalyticsFunnel",
+        "RemoteConfigLoader"
+    };
+
+    static readonly string[] PrefabNameHints =
+    {
+        "Analytics",
+        "SDK",
+        "RemoteConfig",
+        "Remote Config"
+    };
+
     static int ApplyToLoadedComponents(string host, string folder)
     {
         int count = 0;
-        foreach (var manager in FindAll<AnalyticsManager>())
-            count += SetEndpoint(manager, host, folder) ? 1 : 0;
-        foreach (var funnel in FindAll<AnalyticsFunnel>())
-            count += SetEndpoint(funnel, host, folder) ? 1 : 0;
-        foreach (var remote in FindAll<RemoteConfigLoader>())
-            count += SetEndpoint(remote, host, folder) ? 1 : 0;
+        foreach (var obj in FindEndpointObjectsInScene())
+            count += SetEndpoint(obj, host, folder) ? 1 : 0;
         return count;
     }
 
     static int ApplyToPrefabs(string host, string folder)
     {
-        string managerGuid = ScriptGuid(typeof(AnalyticsManager));
-        string funnelGuid = ScriptGuid(typeof(AnalyticsFunnel));
-        string remoteGuid = ScriptGuid(typeof(RemoteConfigLoader));
+        var paths = CollectCandidatePrefabPaths();
         int count = 0;
-
-        string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab");
+        int i = 0;
         try
         {
-            for (int i = 0; i < prefabGuids.Length; i++)
+            foreach (string assetPath in paths)
             {
-                string assetPath = AssetDatabase.GUIDToAssetPath(prefabGuids[i]);
-                if (string.IsNullOrEmpty(assetPath) || !assetPath.EndsWith(".prefab"))
-                    continue;
-                if (!assetPath.StartsWith("Assets/") && assetPath.IndexOf("com.peeps.analytics") < 0)
-                    continue;
-                if (prefabGuids.Length > 40)
-                    EditorUtility.DisplayProgressBar("BetterAnalytics", assetPath, (float)i / prefabGuids.Length);
-
-                string yaml;
-                try { yaml = File.ReadAllText(assetPath); }
-                catch { continue; }
-
-                bool hasManager = !string.IsNullOrEmpty(managerGuid) && yaml.Contains(managerGuid);
-                bool hasFunnel = !string.IsNullOrEmpty(funnelGuid) && yaml.Contains(funnelGuid);
-                bool hasRemote = !string.IsNullOrEmpty(remoteGuid) && yaml.Contains(remoteGuid);
-                if (!hasManager && !hasFunnel && !hasRemote)
-                    continue;
+                i++;
+                if (paths.Count > 12)
+                    EditorUtility.DisplayProgressBar("BetterAnalytics", assetPath, (float)i / paths.Count);
 
                 GameObject root;
                 try { root = PrefabUtility.LoadPrefabContents(assetPath); }
@@ -271,12 +248,8 @@ static class PeepsAnalyticsSync
                 bool dirty = false;
                 try
                 {
-                    foreach (var manager in root.GetComponentsInChildren<AnalyticsManager>(true))
-                        dirty |= SetEndpoint(manager, host, folder);
-                    foreach (var funnel in root.GetComponentsInChildren<AnalyticsFunnel>(true))
-                        dirty |= SetEndpoint(funnel, host, folder);
-                    foreach (var remote in root.GetComponentsInChildren<RemoteConfigLoader>(true))
-                        dirty |= SetEndpoint(remote, host, folder);
+                    foreach (var obj in FindEndpointObjectsOn(root))
+                        dirty |= SetEndpoint(obj, host, folder);
                     if (dirty)
                     {
                         try
@@ -284,7 +257,7 @@ static class PeepsAnalyticsSync
                             PrefabUtility.SaveAsPrefabAsset(root, assetPath);
                             count++;
                         }
-                        catch (System.Exception)
+                        catch (Exception)
                         {
                             // Git UPM packages are often read-only; scene instances still get the value.
                         }
@@ -302,6 +275,87 @@ static class PeepsAnalyticsSync
         }
 
         return count;
+    }
+
+    static HashSet<string> CollectCandidatePrefabPaths()
+    {
+        var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string hint in PrefabNameHints)
+        {
+            foreach (string guid in AssetDatabase.FindAssets(hint + " t:Prefab"))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (!IsProjectPrefab(path))
+                    continue;
+                string file = Path.GetFileNameWithoutExtension(path);
+                if (file.IndexOf(hint.Replace(" ", ""), StringComparison.OrdinalIgnoreCase) < 0 &&
+                    file.IndexOf(hint, StringComparison.OrdinalIgnoreCase) < 0)
+                    continue;
+                paths.Add(path);
+            }
+        }
+
+        return paths;
+    }
+
+    static bool IsProjectPrefab(string path)
+    {
+        return !string.IsNullOrEmpty(path) &&
+               path.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase) &&
+               (path.StartsWith("Assets/") || path.IndexOf("com.peeps.analytics", StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    public static IEnumerable<UnityEngine.Object> FindEndpointObjectsInScene(string typeName = null)
+    {
+        string[] names = string.IsNullOrEmpty(typeName) ? EndpointTypeNames : new[] { typeName };
+        var seen = new HashSet<int>();
+        foreach (string name in names)
+        {
+            foreach (Type type in FindTypesByName(name))
+            {
+                foreach (var obj in FindAll(type))
+                {
+                    if (obj == null)
+                        continue;
+                    int id = obj.GetInstanceID();
+                    if (!seen.Add(id))
+                        continue;
+                    yield return obj;
+                }
+            }
+        }
+    }
+
+    static IEnumerable<UnityEngine.Object> FindEndpointObjectsOn(GameObject root)
+    {
+        if (root == null)
+            yield break;
+        foreach (string name in EndpointTypeNames)
+        {
+            foreach (Type type in FindTypesByName(name))
+            {
+                var found = root.GetComponentsInChildren(type, true);
+                if (found == null)
+                    continue;
+                foreach (var obj in found)
+                {
+                    if (obj != null)
+                        yield return obj;
+                }
+            }
+        }
+    }
+
+    public static IEnumerable<Type> FindTypesByName(string typeName)
+    {
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            Type type;
+            try { type = assembly.GetType(typeName); }
+            catch { continue; }
+            if (type != null && typeof(UnityEngine.Object).IsAssignableFrom(type))
+                yield return type;
+        }
     }
 
     static bool SetEndpoint(UnityEngine.Object obj, string host, string folder)
@@ -331,25 +385,14 @@ static class PeepsAnalyticsSync
         return true;
     }
 
-    static T[] FindAll<T>() where T : UnityEngine.Object
+    static UnityEngine.Object[] FindAll(Type type)
     {
+        if (type == null)
+            return Array.Empty<UnityEngine.Object>();
 #if UNITY_2023_1_OR_NEWER
-        return UnityEngine.Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        return UnityEngine.Object.FindObjectsByType(type, FindObjectsInactive.Include, FindObjectsSortMode.None);
 #else
-        return UnityEngine.Object.FindObjectsOfType<T>(true);
+        return UnityEngine.Object.FindObjectsOfType(type, true);
 #endif
-    }
-
-    static string ScriptGuid(System.Type type)
-    {
-        string[] guids = AssetDatabase.FindAssets(type.Name + " t:MonoScript");
-        foreach (string guid in guids)
-        {
-            string path = AssetDatabase.GUIDToAssetPath(guid);
-            var script = AssetDatabase.LoadAssetAtPath<MonoScript>(path);
-            if (script != null && script.GetClass() == type)
-                return guid;
-        }
-        return "";
     }
 }
