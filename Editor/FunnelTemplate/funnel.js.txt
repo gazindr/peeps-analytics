@@ -10,6 +10,7 @@
     if (window.__htmlFunnelInited) return;
     window.__htmlFunnelInited = true;
 
+    // Host without a scheme is a relative URL. On Yandex that POST hits the CDN and returns 405.
     function resolveFunnelUrl() {
         var host = String(SERVER_HOST || '').trim();
         var folder = String(GAME_FOLDER || '').trim();
